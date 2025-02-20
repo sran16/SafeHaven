@@ -1,0 +1,129 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model Users {
+  id_user           Int      @id @default(autoincrement())
+  name              String   @db.VarChar(100)
+  email             String   @unique @db.VarChar(255)
+  password          String   @db.VarChar(255)
+  registration_Date DateTime @default(now())
+
+  @@index([email])
+  @@index([registration_Date])
+
+  moods             Moods[]
+  toDoLists         ToDoLists[]
+  experiences       Experiences[]
+  chatbotSessions   Chatbot_sessions[]
+  logs              UserLogs[]
+}
+
+model Moods {
+  id_mood           Int      @id @default(autoincrement())
+  dateRegistration  DateTime @default(now())
+  moodType          String   @db.VarChar(50)
+  description       String   @db.VarChar(500)
+
+  @@index([dateRegistration])
+  userId            Int
+  user              Users    @relation(fields: [userId], references: [id_user], onDelete: Cascade)
+}
+
+model ToDoLists {
+  id_list           Int      @id @default(autoincrement())
+  name              String   @db.VarChar(100)
+  notes             String?  @db.VarChar(500)
+  status            Boolean
+  registrationDate  DateTime @default(now())
+  dueDate           DateTime
+
+  @@index([registrationDate])
+  userId            Int
+  user              Users    @relation(fields: [userId], references: [id_user], onDelete: Cascade)
+}
+
+model Chatbot_sessions {
+  id_session       Int      @id @default(autoincrement())
+  startDate        DateTime @default(now())
+  endDate          DateTime?
+
+  userId           Int
+  user             Users    @relation(fields: [userId], references: [id_user], onDelete: Cascade)
+
+  ia               IA?
+}
+
+model IA {
+  id_IA              Int    @id @default(autoincrement())
+  sentimentAnalysis  String @db.VarChar(500)
+  recommendation     String @db.VarChar(500)
+  reportGenerated    String @db.VarChar(500)
+  conversationHistory String @db.Text
+
+  chatbotSessionId   Int    @unique
+  chatbotSession     Chatbot_sessions @relation(fields: [chatbotSessionId], references: [id_session], onDelete: Cascade)
+}
+
+model Experiences {
+  id_experience    Int      @id @default(autoincrement())
+  content          String   @db.Text
+  publication_date DateTime @default(now())
+
+  @@index([publication_date])
+  userId           Int
+  user             Users    @relation(fields: [userId], references: [id_user], onDelete: Cascade)
+
+  answers          Answers[]
+
+  moderateurId     Int?
+  moderateur       Moderateurs? @relation(fields: [moderateurId], references: [id_moderateur])
+
+  moderationLogs   ModerationLogs[]
+}
+
+model Answers {
+  id_response      Int      @id @default(autoincrement())
+  content          String   @db.VarChar(1000)
+  publicationDate  DateTime @default(now())
+
+  @@index([publicationDate])
+  experienceId     Int
+  experience       Experiences @relation(fields: [experienceId], references: [id_experience], onDelete: Cascade)
+}
+
+model Moderateurs {
+  id_moderateur   Int      @id @default(autoincrement())
+
+  @@index([id_moderateur])
+  experiences     Experiences[]
+  moderationLogs  ModerationLogs[]
+}
+
+model UserLogs {
+  id_log           Int      @id @default(autoincrement())
+  action           String   @db.VarChar(100) // Exemple : "login", "update_profile"
+  timestamp        DateTime @default(now())
+
+  @@index([timestamp])
+  userId           Int
+  user             Users @relation(fields: [userId], references: [id_user], onDelete: Cascade)
+}
+
+model ModerationLogs {
+  id_log           Int      @id @default(autoincrement())
+  action           String   @db.VarChar(100) // Exemple : "delete_experience", "warn_user"
+  timestamp        DateTime @default(now())
+
+  @@index([timestamp])
+  experienceId     Int?
+  experience       Experiences? @relation(fields: [experienceId], references: [id_experience], onDelete: Cascade)
+
+  moderatorId      Int
+  moderator        Moderateurs @relation(fields: [moderatorId], references: [id_moderateur], onDelete: Cascade)
+}
