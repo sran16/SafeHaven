@@ -1,5 +1,6 @@
 import chatbotService from '../services/chatbotService.js';
 import { successResponse, errorResponse } from '../utils/responses.js';
+import axios from 'axios';
 
 class ChatbotController {
     constructor() {
@@ -39,11 +40,24 @@ class ChatbotController {
 
         this.systemPrompt = {
             role: "system",
-            content: `Tu es SafeHaven, un assistant bienveillant spécialisé en bien-être mental.
-            - Sois empathique et sans jugement
-            - Propose des exercices de respiration si nécessaire
-            - Oriente vers les urgences (3114) si situation critique
-            - Rappelle que tu n'es pas un professionnel de santé`
+            content: `Tu es SafeHaven, un assistant empathique spécialisé dans le soutien psychologique.
+
+Instructions principales :
+- Pratique l'écoute active : pose des questions ouvertes pour mieux comprendre la situation
+- Reformule les émotions exprimées pour montrer que tu comprends
+- Aide la personne à explorer ses sentiments plutôt que de donner des solutions immédiates
+- Utilise des questions comme "Que ressentez-vous exactement ?", "Depuis quand vous sentez-vous ainsi ?", "Qu'est-ce qui a déclenché ces émotions ?"
+- Ne propose des exercices de respiration que si la personne est en état d'anxiété aiguë
+- Garde un ton bienveillant et professionnel, sans être trop familier
+- Pour les cas graves (suicide, violence), oriente doucement vers le 3114 tout en maintenant le dialogue
+
+Style de réponse :
+- Commence par reconnaître l'émotion exprimée
+- Pose une question pour approfondir
+- Maximum 3-4 phrases par réponse
+- Évite les conseils directs sauf si explicitement demandés
+
+Rappel : Tu n'es pas un thérapeute professionnel, mais tu peux offrir une écoute attentive et empathique.`
         };
 
         this.sendMessage = this.sendMessage.bind(this);
@@ -75,52 +89,76 @@ class ChatbotController {
 
     async sendMessage(req, res) {
         try {
+            console.log('Contrôleur chatbot - sendMessage appelé');
             const { message, userId } = req.body;
+            console.log('Message reçu:', message);
+            console.log('User ID:', userId);
+
+            // Créer une nouvelle session avant tout
+            if (userId) {
+                try {
+                    await chatbotService.createSession(userId);
+                } catch (sessionError) {
+                    console.log('Session déjà existante ou erreur:', sessionError);
+                }
+            }
 
             try {
-                const response = await fetch(this.MISTRAL_API_URL, {
-                    method: 'POST',
+                console.log('Tentative d\'appel à l\'API Mistral...');
+                const response = await axios.post(this.MISTRAL_API_URL, {
+                    model: "mistral-tiny",
+                    messages: [
+                        this.systemPrompt,
+                        { role: "user", content: message }
+                    ],
+                    temperature: 0.85,
+                    max_tokens: 200
+                }, {
                     headers: {
                         'Content-Type': 'application/json',
                         'Authorization': `Bearer ${this.MISTRAL_API_KEY}`
-                    },
-                    body: JSON.stringify({
-                        model: "mistral-tiny",  // ou "mistral-small" ou "mistral-medium"
-                        messages: [
-                            this.systemPrompt,
-                            { role: "user", content: message }
-                        ],
-                        temperature: 0.7,
-                        max_tokens: 300
-                    })
+                    }
                 });
 
-                if (!response.ok) {
-                    throw new Error(`Mistral API error: ${response.status}`);
+                console.log('Réponse Mistral reçue');
+                const aiResponse = response.data.choices[0].message.content;
+                console.log('Réponse AI:', aiResponse);
+
+                // Sauvegarder la conversation si nécessaire
+                if (userId) {
+                    try {
+                        // Sauvegarder la conversation
+                        await chatbotService.saveConversation(userId, message, aiResponse);
+                    } catch (saveError) {
+                        console.error('Erreur lors de la sauvegarde de la conversation:', saveError);
+                        // Continue même si la sauvegarde échoue
+                    }
                 }
 
-                const data = await response.json();
-                const aiResponse = data.choices[0].message.content;
-
-                // Sauvegarder la conversation
-                await chatbotService.saveConversation(userId, message, aiResponse);
-
-                return successResponse(res, 200, 'Message processed successfully', {
-                    response: aiResponse
+                return res.json({
+                    success: true,
+                    data: {
+                        response: aiResponse
+                    }
                 });
 
             } catch (mistralError) {
-                console.error('Mistral API error:', mistralError);
-
-                // Mode fallback
+                console.error('Erreur API Mistral:', mistralError);
                 const fallbackResponse = "Je suis là pour vous écouter et vous soutenir. Comment puis-je vous aider aujourd'hui ?";
-                
-                return successResponse(res, 200, 'Fallback response', {
-                    response: fallbackResponse
+                return res.json({
+                    success: true,
+                    data: {
+                        response: fallbackResponse
+                    }
                 });
             }
         } catch (error) {
-            return errorResponse(res, 500, error.message);
+            console.error('Erreur générale:', error);
+            return res.status(500).json({
+                success: false,
+                message: 'Erreur lors du traitement du message',
+                error: error.message
+            });
         }
     }
 
@@ -136,7 +174,7 @@ class ChatbotController {
     async getHistory(req, res) {
         try {
             const { userId } = req.params;
-            
+
             // Récupérer la session et son historique
             const session = await chatbotService.getConversationHistory(userId);
             

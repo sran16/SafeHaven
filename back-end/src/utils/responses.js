@@ -1,14 +1,15 @@
-export const successResponse = (res, statusCode, message, data) => {
-    return res.status(statusCode).json({
-        success: true,
-        message,
-        data
-    });
+export const successResponse = (res, statusCode = 200, message = 'Success', data = null) => {
+  return res.status(statusCode).json({
+    success: true,
+    message,
+    data
+  });
 };
 
-export const errorResponse = (res, statusCode, message) => {
-    return res.status(statusCode).json({
-        success: false,
-        message
-    });
-};
+export const errorResponse = (res, statusCode = 500, message = 'Une erreur est survenue', error = null) => {
+  return res.status(statusCode).json({
+    success: false,
+    message,
+    error: process.env.NODE_ENV === 'development' ? error : undefined
+  });
+}; 

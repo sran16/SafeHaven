@@ -95,6 +95,9 @@ model Answers {
   @@index([publicationDate])
   experienceId     Int
   experience       Experiences @relation(fields: [experienceId], references: [id_experience], onDelete: Cascade)
+  
+  userId           Int
+  user             Users    @relation(fields: [userId], references: [id_user], onDelete: Cascade)
 }
 
 model Moderateurs {
