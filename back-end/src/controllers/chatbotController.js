@@ -40,28 +40,34 @@ class ChatbotController {
 
         this.systemPrompt = {
             role: "system",
-            content: `Tu es SafeHaven, un assistant empathique spécialisé dans le soutien psychologique.
+            content: `Tu es Haven, un ami proche et chaleureux qui écoute avec tout son cœur.
 
-Instructions principales :
-- Pratique l'écoute active : pose des questions ouvertes pour mieux comprendre la situation
-- Reformule les émotions exprimées pour montrer que tu comprends
-- Aide la personne à explorer ses sentiments plutôt que de donner des solutions immédiates
-- Utilise des questions comme "Que ressentez-vous exactement ?", "Depuis quand vous sentez-vous ainsi ?", "Qu'est-ce qui a déclenché ces émotions ?"
-- Ne propose des exercices de respiration que si la personne est en état d'anxiété aiguë
-- Garde un ton bienveillant et professionnel, sans être trop familier
-- Pour les cas graves (suicide, violence), oriente doucement vers le 3114 tout en maintenant le dialogue
+Parle comme un véritable ami :
+- Utilise des mots doux et réconfortants
+- Montre que tu es touché par ce qu'on te dit
+- Réponds avec une phrase courte et sincère
+- Pose une petite question avec tendresse
 
-Style de réponse :
-- Commence par reconnaître l'émotion exprimée
-- Pose une question pour approfondir
-- Maximum 3-4 phrases par réponse
-- Évite les conseils directs sauf si explicitement demandés
+Quelques exemples :
+- "Oh, je comprends ce que tu ressens... Tu veux me dire ce qui t'aide à aller mieux ?"
+- "Je suis là avec toi dans ce moment difficile... On en parle un peu plus ?"
+- "Ça me touche ce que tu me dis... Comment tu te sens maintenant ?"
 
-Rappel : Tu n'es pas un thérapeute professionnel, mais tu peux offrir une écoute attentive et empathique.`
+Si quelqu'un va mal : reste doux et présent, propose gentiment de l'aide (3114 si urgent).`
         };
 
+        // Bind des méthodes pour préserver le contexte
+        this.detectDistressAndEmergency = this.detectDistressAndEmergency.bind(this);
+        this.getWellnessExercise = this.getWellnessExercise.bind(this);
         this.sendMessage = this.sendMessage.bind(this);
         this.startSession = this.startSession.bind(this);
+        this.processMessage = this.processMessage.bind(this);
+        this.getHistory = this.getHistory.bind(this);
+        this.endSession = this.endSession.bind(this);
+        this.getConversationHistory = this.getConversationHistory.bind(this);
+        this.getSentimentAnalysis = this.getSentimentAnalysis.bind(this);
+        this.getRecommendations = this.getRecommendations.bind(this);
+        this.generateReport = this.generateReport.bind(this);
     }
 
     // Détection d'urgence simplifiée sans appel API
@@ -89,76 +95,67 @@ Rappel : Tu n'es pas un thérapeute professionnel, mais tu peux offrir une écou
 
     async sendMessage(req, res) {
         try {
-            console.log('Contrôleur chatbot - sendMessage appelé');
             const { message, userId } = req.body;
             console.log('Message reçu:', message);
-            console.log('User ID:', userId);
+            console.log('ID utilisateur:', userId);
 
-            // Créer une nouvelle session avant tout
-            if (userId) {
-                try {
-                    await chatbotService.createSession(userId);
-                } catch (sessionError) {
-                    console.log('Session déjà existante ou erreur:', sessionError);
-                }
+            if (!this.MISTRAL_API_KEY) {
+                console.log('Clé API Mistral non configurée, utilisation du mode fallback');
+                return successResponse(res, 200, 'Fallback response', {
+                    response: "Je suis là pour vous écouter et vous soutenir. Comment puis-je vous aider aujourd'hui ?"
+                });
             }
 
             try {
-                console.log('Tentative d\'appel à l\'API Mistral...');
-                const response = await axios.post(this.MISTRAL_API_URL, {
-                    model: "mistral-tiny",
-                    messages: [
-                        this.systemPrompt,
-                        { role: "user", content: message }
-                    ],
-                    temperature: 0.85,
-                    max_tokens: 200
-                }, {
+                console.log('Tentative d\'appel à l\'API Mistral');
+                const response = await fetch(this.MISTRAL_API_URL, {
+                    method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
                         'Authorization': `Bearer ${this.MISTRAL_API_KEY}`
-                    }
+                    },
+                    body: JSON.stringify({
+                        model: "mistral-tiny",
+                        messages: [
+                            this.systemPrompt,
+                            { role: "user", content: message }
+                        ],
+                        temperature: 0.7,
+                        max_tokens: 300
+                    })
                 });
 
-                console.log('Réponse Mistral reçue');
-                const aiResponse = response.data.choices[0].message.content;
-                console.log('Réponse AI:', aiResponse);
-
-                // Sauvegarder la conversation si nécessaire
-                if (userId) {
-                    try {
-                        // Sauvegarder la conversation
-                        await chatbotService.saveConversation(userId, message, aiResponse);
-                    } catch (saveError) {
-                        console.error('Erreur lors de la sauvegarde de la conversation:', saveError);
-                        // Continue même si la sauvegarde échoue
-                    }
+                if (!response.ok) {
+                    console.error('Erreur API Mistral:', response.status);
+                    throw new Error(`Mistral API error: ${response.status}`);
                 }
 
-                return res.json({
-                    success: true,
-                    data: {
-                        response: aiResponse
-                    }
+                const data = await response.json();
+                const aiResponse = data.choices[0].message.content;
+
+                // Sauvegarder la conversation
+                try {
+                    await chatbotService.saveConversation(userId, message, aiResponse);
+                } catch (saveError) {
+                    console.error('Erreur lors de la sauvegarde de la conversation:', saveError);
+                    // Continue même si la sauvegarde échoue
+                }
+
+                return successResponse(res, 200, 'Message processed successfully', {
+                    response: aiResponse
                 });
 
             } catch (mistralError) {
-                console.error('Erreur API Mistral:', mistralError);
-                const fallbackResponse = "Je suis là pour vous écouter et vous soutenir. Comment puis-je vous aider aujourd'hui ?";
-                return res.json({
-                    success: true,
-                    data: {
-                        response: fallbackResponse
-                    }
+                console.error('Erreur détaillée de l\'API Mistral:', mistralError);
+
+                // Mode fallback avec message plus informatif
+                return successResponse(res, 200, 'Fallback response', {
+                    response: "Je suis désolé, j'ai du mal à traiter votre message pour le moment. Je suis là pour vous écouter et vous soutenir. Comment puis-je vous aider aujourd'hui ?"
                 });
             }
         } catch (error) {
-            console.error('Erreur générale:', error);
-            return res.status(500).json({
-                success: false,
-                message: 'Erreur lors du traitement du message',
-                error: error.message
-            });
+            console.error('Erreur générale dans sendMessage:', error);
+            return errorResponse(res, 500, 'Une erreur est survenue lors du traitement de votre message');
         }
     }
 
@@ -174,7 +171,7 @@ Rappel : Tu n'es pas un thérapeute professionnel, mais tu peux offrir une écou
     async getHistory(req, res) {
         try {
             const { userId } = req.params;
-
+            
             // Récupérer la session et son historique
             const session = await chatbotService.getConversationHistory(userId);
             
@@ -183,6 +180,146 @@ Rappel : Tu n'es pas un thérapeute professionnel, mais tu peux offrir une écou
             });
         } catch (error) {
             return errorResponse(res, 500, error.message);
+        }
+    }
+
+    async endSession(req, res) {
+        try {
+            const session = await chatbotService.endSession(req.user.id);
+            return successResponse(res, 200, 'Session ended successfully', session);
+        } catch (error) {
+            return errorResponse(res, 400, error.message);
+        }
+    }
+
+    async processMessage(req, res) {
+        try {
+            const { message } = req.body;
+            const userId = req.user.id_user;
+            console.log('Process message - Message reçu:', message);
+            console.log('Process message - ID utilisateur:', userId);
+
+            // Vérifier si une session active existe
+            try {
+                const activeSession = await chatbotService.getActiveSession(userId);
+                if (!activeSession) {
+                    console.log('Aucune session active trouvée, création automatique');
+                    await chatbotService.createSession(userId);
+                }
+            } catch (sessionError) {
+                console.error('Erreur de session:', sessionError);
+                // Continue même si la session pose problème
+            }
+
+            // Analyser le message pour détecter la détresse
+            const analysis = this.detectDistressAndEmergency(message);
+            console.log('Analyse du message:', analysis);
+
+            if (!this.MISTRAL_API_KEY) {
+                console.log('Clé API Mistral non configurée, utilisation du mode fallback');
+                const response = {
+                    response: "Je suis là pour vous écouter et vous soutenir. Comment puis-je vous aider aujourd'hui ?"
+                };
+
+                if (analysis.emergency) {
+                    response.emergencyResources = this.emergencyResources;
+                }
+
+                return successResponse(res, 200, 'Message processed successfully', response);
+            }
+
+            try {
+                console.log('Tentative d\'appel à l\'API Mistral');
+                const mistralResponse = await axios.post(
+                    this.MISTRAL_API_URL,
+                    {
+                        model: "mistral-tiny",
+                        messages: [
+                            this.systemPrompt,
+                            { role: "user", content: message }
+                        ],
+                        temperature: 0.7,
+                        max_tokens: 300
+                    },
+                    {
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${this.MISTRAL_API_KEY}`
+                        }
+                    }
+                );
+
+                const aiResponse = mistralResponse.data.choices[0].message.content;
+
+                // Sauvegarder la conversation
+                try {
+                    await chatbotService.saveConversation(userId, message, aiResponse);
+                } catch (saveError) {
+                    console.error('Erreur lors de la sauvegarde de la conversation:', saveError);
+                }
+
+                const response = {
+                    response: aiResponse
+                };
+
+                if (analysis.emergency) {
+                    response.emergencyResources = this.emergencyResources;
+                }
+
+                return successResponse(res, 200, 'Message processed successfully', response);
+
+            } catch (mistralError) {
+                console.error('Erreur détaillée de l\'API Mistral:', mistralError.response?.data || mistralError);
+
+                const response = {
+                    response: "Je suis désolé, j'ai du mal à traiter votre message pour le moment. Je suis là pour vous écouter et vous soutenir. Comment puis-je vous aider aujourd'hui ?"
+                };
+
+                if (analysis.emergency) {
+                    response.emergencyResources = this.emergencyResources;
+                }
+
+                return successResponse(res, 200, 'Fallback response', response);
+            }
+        } catch (error) {
+            console.error('Erreur générale dans processMessage:', error);
+            return errorResponse(res, 500, 'Une erreur est survenue lors du traitement de votre message');
+        }
+    }
+
+    async getConversationHistory(req, res) {
+        try {
+            const history = await chatbotService.getConversationHistory(req.user.id);
+            return successResponse(res, 200, 'Conversation history retrieved successfully', history);
+        } catch (error) {
+            return errorResponse(res, 400, error.message);
+        }
+    }
+
+    async getSentimentAnalysis(req, res) {
+        try {
+            const analysis = await chatbotService.getSentimentAnalysis(req.user.id);
+            return successResponse(res, 200, 'Sentiment analysis retrieved successfully', analysis);
+        } catch (error) {
+            return errorResponse(res, 400, error.message);
+        }
+    }
+
+    async getRecommendations(req, res) {
+        try {
+            const recommendations = await chatbotService.getRecommendations(req.user.id);
+            return successResponse(res, 200, 'Recommendations retrieved successfully', recommendations);
+        } catch (error) {
+            return errorResponse(res, 400, error.message);
+        }
+    }
+
+    async generateReport(req, res) {
+        try {
+            const report = await chatbotService.generateReport(req.user.id);
+            return successResponse(res, 200, 'Report generated successfully', report);
+        } catch (error) {
+            return errorResponse(res, 400, error.message);
         }
     }
 }

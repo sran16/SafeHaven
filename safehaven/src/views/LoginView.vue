@@ -57,6 +57,17 @@
           </div>
 
           <div class="form-group">
+            <label for="register-email">Email</label>
+            <input 
+              id="register-email"
+              type="email" 
+              v-model="registerForm.email" 
+              placeholder="Votre adresse email"
+              required 
+            />
+          </div>
+
+          <div class="form-group">
             <label for="register-password">Mot de passe</label>
             <input 
               id="register-password"
@@ -95,9 +106,10 @@
 <script setup>
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
-import axios from 'axios'
+import { useAuthStore } from '../stores/auth'
 
 const router = useRouter()
+const authStore = useAuthStore()
 const isRegistering = ref(false)
 
 const loginForm = ref({
@@ -107,27 +119,20 @@ const loginForm = ref({
 
 const registerForm = ref({
   name: '',
+  email: '',
   password: '',
   confirmPassword: ''
 })
 
 const handleLogin = async () => {
   try {
-    const response = await axios.post('http://localhost:3000/api/auth/login', {
-      name: loginForm.value.name,
-      password: loginForm.value.password
-    })
-
-    if (response.data.success) {
-      localStorage.setItem('token', response.data.token)
-      localStorage.setItem('user', JSON.stringify({
-        id_user: response.data.user.id_user,
-        name: response.data.user.name
-      }))
-      router.push('/home')
+    const result = await authStore.login(loginForm.value.name, loginForm.value.password)
+    if (!result.success) {
+      alert(result.error || 'Erreur de connexion')
     }
   } catch (error) {
     console.error('Erreur de connexion:', error)
+    alert('Erreur de connexion')
   }
 }
 
@@ -138,21 +143,18 @@ const handleRegister = async () => {
   }
   
   try {
-    const response = await axios.post('http://localhost:3000/api/auth/register', {
-      name: registerForm.value.name,
-      password: registerForm.value.password
-    })
-
-    if (response.data.success) {
-      isRegistering.value = false
-      loginForm.value = {
-        name: registerForm.value.name,
-        password: registerForm.value.password
-      }
-      await handleLogin()
+    const result = await authStore.register(
+      registerForm.value.name,
+      registerForm.value.email,
+      registerForm.value.password
+    )
+    
+    if (!result.success) {
+      alert(result.error || 'Erreur d\'inscription')
     }
   } catch (error) {
     console.error('Erreur d\'inscription:', error)
+    alert('Erreur d\'inscription')
   }
 }
 </script>

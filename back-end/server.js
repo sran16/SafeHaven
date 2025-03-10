@@ -4,11 +4,10 @@ import cors from "cors";
 import dotenv from "dotenv";
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
-import authRoutes from './src/routes/authRoutes.js';
 import chatbotRoutes from './src/routes/chatbotRoutes.js';
 import moodRoutes from './src/routes/moodRoutes.js';
-import postRoutes from './src/routes/postRoutes.js';
 import userRoutes from './src/routes/userRoutes.js';
+import experienceRoutes from './src/routes/experienceRoutes.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -46,11 +45,10 @@ app.get('/api/chat/test', (req, res) => {
 });
 
 // Routes API
-app.use('/api/auth', authRoutes);
+app.use('/api/users', userRoutes);
 app.use('/api/chat', chatbotRoutes);
 app.use('/api/moods', moodRoutes);
-app.use('/api/posts', postRoutes);
-app.use('/api/users', userRoutes);
+app.use('/api/experiences', experienceRoutes);
 
 // Middleware de gestion des erreurs
 app.use((err, req, res, next) => {

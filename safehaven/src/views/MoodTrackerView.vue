@@ -96,14 +96,14 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, computed } from 'vue'
 import axios from 'axios'
+import { useMoodStore } from '../stores/moods'
 
 const showAddMoodModal = ref(false)
 const selectedMood = ref('')
 const moodNote = ref('')
-const todayMood = ref(null)
-const moodHistory = ref([])
+const moodStore = useMoodStore()
 
 const moods = [
   { value: 'happy', emoji: '😊', label: 'Heureux' },
@@ -145,7 +145,7 @@ const getDaysInMonth = (date) => {
 
 const hasMood = (month, day) => {
   const date = new Date(month.getFullYear(), month.getMonth(), day)
-  return moodHistory.value.some(mood => {
+  return moodStore.moods.some(mood => {
     const moodDate = new Date(mood.dateRegistration)
     return moodDate.toDateString() === date.toDateString()
   })
@@ -153,7 +153,7 @@ const hasMood = (month, day) => {
 
 const getMood = (month, day) => {
   const date = new Date(month.getFullYear(), month.getMonth(), day)
-  return moodHistory.value.find(mood => {
+  return moodStore.moods.find(mood => {
     const moodDate = new Date(mood.dateRegistration)
     return moodDate.toDateString() === date.toDateString()
   })
@@ -173,15 +173,6 @@ const saveMood = async () => {
       return
     }
 
-    // Vérifier l'authentification
-    const token = localStorage.getItem('token')
-    console.log('Token présent:', !!token)
-
-    if (!token) {
-      console.error('Token d\'authentification manquant')
-      return
-    }
-
     const moodData = {
       moodType: selectedMood.value,
       description: moodNote.value || ''
@@ -189,58 +180,25 @@ const saveMood = async () => {
 
     console.log('Données de l\'humeur à envoyer:', JSON.stringify(moodData, null, 2))
 
-    const response = await axios.post('http://localhost:3000/api/moods', moodData, {
-      headers: {
-        'Authorization': `Bearer ${token}`,
-        'Content-Type': 'application/json'
-      }
-    })
-
-    console.log('Réponse du serveur:', JSON.stringify(response.data, null, 2))
-    
-    if (response.data.success) {
-      await fetchMoodData()
-      showAddMoodModal.value = false
-      selectedMood.value = ''
-      moodNote.value = ''
-    }
+    await moodStore.createMood(moodData)
+    showAddMoodModal.value = false
+    selectedMood.value = ''
+    moodNote.value = ''
   } catch (error) {
     console.error('Erreur lors de l\'enregistrement de l\'humeur:', error)
-    if (error.response) {
-      console.error('Détails de l\'erreur:', error.response.data)
-    }
   }
 }
 
-const fetchMoodData = async () => {
+onMounted(async () => {
   try {
-    const response = await axios.get('http://localhost:3000/api/moods', {
-      headers: {
-        Authorization: `Bearer ${localStorage.getItem('token')}`
-      }
-    })
-    console.log('Données d\'humeur reçues:', response.data)
-    moodHistory.value = response.data
-    todayMood.value = moodHistory.value.find(mood => {
-      const moodDate = new Date(mood.dateRegistration)
-      const today = new Date()
-      const isSameDay = moodDate.toDateString() === today.toDateString()
-      console.log('Comparaison des dates:', {
-        moodDate: moodDate.toDateString(),
-        today: today.toDateString(),
-        isSameDay
-      })
-      return isSameDay
-    })
-    console.log('Humeur du jour trouvée:', todayMood.value)
+    await moodStore.fetchMoods()
   } catch (error) {
-    console.error('Erreur lors du chargement des données d\'humeur:', error)
+    console.error('Erreur lors du chargement des humeurs:', error)
   }
-}
-
-onMounted(() => {
-  fetchMoodData()
 })
+
+const moodHistory = computed(() => moodStore.moods)
+const todayMood = computed(() => moodStore.todayMood)
 </script>
 
 <style scoped>

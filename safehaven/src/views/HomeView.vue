@@ -1,25 +1,43 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import axios from 'axios'
+import { useRouter } from 'vue-router'
 
 const posts = ref([])
 const loading = ref(true)
+const router = useRouter()
 
 const fetchPosts = async () => {
   try {
-    const response = await axios.get('http://localhost:3000/api/posts', {
+    const token = localStorage.getItem('token')
+    if (!token) {
+      console.error('Pas de token d\'authentification')
+      router.push('/login')
+      return
+    }
+
+    const response = await axios.get('http://localhost:3000/api/experiences', {
       headers: {
-        Authorization: `Bearer ${localStorage.getItem('token')}`
+        'Authorization': `Bearer ${token}`
       }
     })
-    posts.value = response.data.map(post => ({
-      ...post,
-      showComments: false,
-      newComment: '',
-      comments: post.comments || []
-    }))
+    
+    console.log('Réponse des expériences:', response.data)
+    if (response.data.success) {
+      posts.value = response.data.data.map(post => ({
+        ...post,
+        showComments: false,
+        newComment: '',
+        comments: post.comments || []
+      }))
+    } else {
+      console.error('Erreur dans la réponse:', response.data)
+    }
   } catch (error) {
     console.error('Erreur lors du chargement des posts:', error)
+    if (error.response?.status === 401) {
+      router.push('/login')
+    }
   } finally {
     loading.value = false
   }
@@ -27,19 +45,29 @@ const fetchPosts = async () => {
 
 const likePost = async (postId) => {
   try {
-    const response = await axios.post(`http://localhost:3000/api/posts/${postId}/like`, {}, {
+    const token = localStorage.getItem('token')
+    if (!token) {
+      console.error('Pas de token d\'authentification')
+      router.push('/login')
+      return
+    }
+
+    const response = await axios.post(`/api/experiences/${postId}/like`, {}, {
       headers: {
-        Authorization: `Bearer ${localStorage.getItem('token')}`
+        'Authorization': `Bearer ${token}`
       }
     })
     
     const post = posts.value.find(p => p.id_experience === postId)
-    if (post) {
-      post.isLiked = response.data.isLiked
-      post.likes = response.data.likes
+    if (post && response.data.success) {
+      post.isLiked = response.data.data.isLiked
+      post.likes = response.data.data.likes
     }
   } catch (error) {
     console.error('Erreur lors du like:', error)
+    if (error.response?.status === 401) {
+      router.push('/login')
+    }
   }
 }
 
@@ -51,35 +79,53 @@ const addComment = async (post) => {
   if (!post.newComment.trim()) return
 
   try {
-    const token = localStorage.getItem('token');
+    const token = localStorage.getItem('token')
     if (!token) {
-      console.error('Pas de token d\'authentification');
-      return;
+      console.error('Pas de token d\'authentification')
+      router.push('/login')
+      return
     }
 
-    console.log('Token présent:', token);
-    console.log('Post pour commentaire:', post);
-    console.log('Contenu du commentaire:', post.newComment);
+    const commentContent = post.newComment.trim()
+    post.newComment = '' // Vider l'input immédiatement
 
     const response = await axios.post(
-      `http://localhost:3000/api/posts/${post.id_experience}/comment`,
-      { content: post.newComment },
+      `/api/experiences/${post.id_experience}/comments`,
+      { content: commentContent },
       {
         headers: {
-          Authorization: `Bearer ${token}`
+          'Authorization': `Bearer ${token}`
         }
       }
     )
 
-    console.log('Réponse du serveur:', response.data);
+    console.log('Réponse du serveur:', response.data)
     if (response.data.success) {
-      post.comments.push(response.data.comment);
-      post.newComment = '';
+      const newComment = {
+        id: response.data.data.id,
+        content: response.data.data.content,
+        author: response.data.data.author,
+        createdAt: response.data.data.createdAt
+      }
+      
+      // Initialiser le tableau des commentaires s'il n'existe pas
+      if (!Array.isArray(post.comments)) {
+        post.comments = []
+      }
+      
+      // Ajouter le nouveau commentaire au début du tableau
+      post.comments = [newComment, ...post.comments]
+      
+      console.log('Commentaire ajouté:', newComment)
+      console.log('Liste des commentaires mise à jour:', post.comments)
     }
   } catch (error) {
-    console.error('Erreur lors de l\'ajout du commentaire:', error);
+    console.error('Erreur lors de l\'ajout du commentaire:', error)
+    if (error.response?.status === 401) {
+      router.push('/login')
+    }
     if (error.response) {
-      console.error('Détails de l\'erreur:', error.response.data);
+      console.error('Détails de l\'erreur:', error.response.data)
     }
   }
 }
@@ -145,12 +191,17 @@ onMounted(() => {
           <!-- Section commentaires -->
           <div v-if="post.showComments" class="comments-section">
             <div class="comments-list">
-              <div v-for="comment in post.comments" :key="comment.id" class="comment">
-                <div class="comment-header">
-                  <strong>{{ comment.author }}</strong>
-                  <span class="comment-date">{{ formatDate(comment.createdAt) }}</span>
+              <div v-if="post.comments && post.comments.length > 0">
+                <div v-for="comment in post.comments" :key="comment.id" class="comment">
+                  <div class="comment-header">
+                    <strong>{{ comment.author }}</strong>
+                    <span class="comment-date">{{ formatDate(comment.createdAt) }}</span>
+                  </div>
+                  <p class="comment-content">{{ comment.content }}</p>
                 </div>
-                <p class="comment-content">{{ comment.content }}</p>
+              </div>
+              <div v-else class="no-comments">
+                <p>Aucun commentaire pour le moment</p>
               </div>
             </div>
             
@@ -375,6 +426,8 @@ onMounted(() => {
 .comments-section {
   background-color: var(--background-soft);
   padding: var(--spacing-md);
+  margin-top: var(--spacing-md);
+  border-top: 1px solid var(--secondary-color);
 }
 
 .comments-list {
@@ -392,45 +445,45 @@ onMounted(() => {
 .comment-header {
   display: flex;
   justify-content: space-between;
-  align-items: flex-start;
-  margin-bottom: var(--spacing-sm);
+  align-items: center;
+  margin-bottom: var(--spacing-xs);
 }
 
 .comment-header strong {
-  font-size: 0.9rem;
   color: var(--text-primary);
+  font-weight: 600;
 }
 
 .comment-date {
-  font-size: 0.75rem;
+  font-size: 0.8rem;
   color: var(--text-secondary);
 }
 
 .comment-content {
-  font-size: 0.9rem;
-  line-height: 1.4;
   color: var(--text-primary);
+  font-size: 0.95rem;
+  line-height: 1.4;
+}
+
+.no-comments {
+  text-align: center;
+  padding: var(--spacing-md);
+  color: var(--text-secondary);
+  font-style: italic;
 }
 
 .comment-form {
-  position: fixed;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  padding: var(--spacing-md);
-  background: white;
-  box-shadow: var(--shadow-large);
-  z-index: 99;
+  margin-top: var(--spacing-md);
+  display: flex;
+  gap: var(--spacing-sm);
 }
 
 .comment-input {
-  width: 100%;
-  padding: var(--spacing-md);
+  flex: 1;
+  padding: var(--spacing-sm) var(--spacing-md);
   border: 1px solid var(--secondary-color);
-  border-radius: var(--border-radius-lg);
+  border-radius: var(--border-radius-md);
   font-size: 0.95rem;
-  margin-bottom: var(--spacing-sm);
-  transition: var(--transition-fast);
 }
 
 .comment-input:focus {
@@ -440,19 +493,19 @@ onMounted(() => {
 }
 
 .comment-btn {
-  width: 100%;
-  padding: var(--spacing-md);
+  padding: var(--spacing-sm) var(--spacing-md);
   background-color: var(--primary-color);
   color: white;
   border: none;
-  border-radius: var(--border-radius-lg);
+  border-radius: var(--border-radius-md);
   font-weight: 500;
-  font-size: 0.95rem;
   transition: var(--transition-fast);
 }
 
 .comment-btn:hover {
   background-color: #6b8a83;
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-soft);
 }
 
 @media (max-width: 320px) {

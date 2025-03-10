@@ -6,9 +6,8 @@
 
     <div class="chat-window" ref="chatWindow">
       <div v-if="messages.length === 0" class="welcome-message">
-        <h2>👋 Bonjour !</h2>
-        <p>Je suis votre assistant personnel. Je suis là pour vous écouter et vous aider à gérer vos émotions.</p>
-        <p>Comment puis-je vous aider aujourd'hui ?</p>
+        <h2>Bonjour ��</h2>
+        <p>Je suis Haven, votre espace de discussion confidentiel. De quoi souhaitez-vous parler ?</p>
       </div>
 
       <div v-else class="messages">
@@ -83,28 +82,49 @@ const sendMessage = async () => {
   isProcessing.value = true
 
   try {
+    const token = localStorage.getItem('token')
+    if (!token) {
+      throw new Error('Vous devez être connecté pour utiliser le chat')
+    }
+
     const userStr = localStorage.getItem('user')
     console.log('Données utilisateur brutes:', userStr)
     
     if (!userStr) {
-      throw new Error('Aucune donnée utilisateur trouvée')
+      throw new Error('Session expirée, veuillez vous reconnecter')
     }
 
-    const user = JSON.parse(userStr)
-    console.log('Données utilisateur parsées:', user)
+    let user
+    try {
+      user = JSON.parse(userStr)
+      console.log('Données utilisateur parsées:', user)
+    } catch (e) {
+      throw new Error('Erreur de session, veuillez vous reconnecter')
+    }
     
-    const userId = user.id_user
-    console.log('ID utilisateur:', userId)
-    
-    if (!userId) {
-      throw new Error('ID utilisateur non trouvé')
+    if (!user || !user.id) {
+      throw new Error('Session invalide, veuillez vous reconnecter')
     }
 
-    const token = localStorage.getItem('token')
-    console.log('Token présent:', !!token)
+    // Vérifier si une session de chat existe, sinon en créer une
+    try {
+      await axios.post('/api/chat/session/start', 
+        { userId: user.id },
+        {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          }
+        }
+      )
+    } catch (error) {
+      console.log('Session peut-être déjà existante:', error)
+      // Continue même si la session existe déjà
+    }
 
-    const response = await axios.post('http://localhost:3000/api/chat/message', 
-      { message: messageText, userId },
+    // Envoyer le message
+    const response = await axios.post('/api/chat/message', 
+      { message: messageText },
       {
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -126,7 +146,7 @@ const sendMessage = async () => {
   } catch (error) {
     console.error('Erreur complète:', error)
     messages.value.push({
-      text: 'Désolé, une erreur est survenue. Veuillez réessayer.',
+      text: error.message || 'Désolé, une erreur est survenue. Veuillez réessayer.',
       sender: 'bot',
       timestamp: new Date()
     })

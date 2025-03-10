@@ -29,20 +29,30 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
 
-  const login = async (email, password) => {
+  const login = async (name, password) => {
     try {
-      const response = await axios.post('http://localhost:3000/api/auth/login', {
-        email,
+      console.log('Tentative de connexion avec:', { name });
+      
+      const response = await axios.post('/api/users/login', {
+        name,
         password
       })
       
+      console.log('Réponse de connexion:', response.data);
+      
       if (response.data.success) {
-        setToken(response.data.token)
+        const userData = response.data.data.user;
+        const token = response.data.data.token;
+        
+        console.log('Données utilisateur:', userData);
+        console.log('Token:', token);
+        
+        setToken(token)
         setUser({
-          id: response.data.user.id_user,
-          name: response.data.user.name,
-          email: response.data.user.email
+          id: userData.id_user,
+          name: userData.name
         })
+        
         router.push('/home')
         return { success: true }
       } else {
@@ -52,7 +62,7 @@ export const useAuthStore = defineStore('auth', () => {
         }
       }
     } catch (error) {
-      console.error('Erreur de connexion:', error)
+      console.error('Erreur de connexion détaillée:', error.response?.data || error);
       return {
         success: false,
         error: error.response?.data?.message || 'Erreur de connexion'
@@ -60,25 +70,41 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
 
-  const register = async (username, email, password) => {
+  const register = async (name, email, password) => {
     try {
-      const response = await axios.post('http://localhost:3000/api/auth/register', {
-        username,
+      console.log('Tentative d\'inscription avec:', { name, email });
+      
+      const response = await axios.post('/api/users/register', {
+        name,
         email,
         password
       })
       
+      console.log('Réponse d\'inscription:', response.data);
+      
       if (response.data.success) {
-        // Optionnel : connecter automatiquement l'utilisateur après l'inscription
-        return login(email, password)
-      } else {
-        return {
-          success: false,
-          error: response.data.message
-        }
+        const userData = response.data.data.user;
+        const token = response.data.data.token;
+        
+        console.log('Données utilisateur:', userData);
+        console.log('Token:', token);
+        
+        setToken(token)
+        setUser({
+          id: userData.id_user,
+          name: userData.name
+        })
+        
+        router.push('/home')
+        return { success: true }
+      }
+      
+      return {
+        success: false,
+        error: response.data.message
       }
     } catch (error) {
-      console.error('Erreur d\'inscription:', error)
+      console.error('Erreur d\'inscription détaillée:', error.response?.data || error);
       return {
         success: false,
         error: error.response?.data?.message || 'Erreur d\'inscription'
@@ -86,19 +112,24 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
 
-  const logout = () => {
-    setToken(null)
-    setUser(null)
-    router.push('/login')
+  const logout = async () => {
+    try {
+      await axios.post('/api/users/logout')
+    } catch (error) {
+      console.error('Erreur lors de la déconnexion:', error)
+    } finally {
+      setToken(null)
+      setUser(null)
+      router.push('/login')
+    }
   }
 
   const fetchUser = async () => {
     try {
-      const response = await axios.get('http://localhost:3000/api/users/me')
+      const response = await axios.get('/api/users/profile')
       setUser({
         id: response.data.id_user,
-        name: response.data.name,
-        email: response.data.email
+        name: response.data.name
       })
     } catch (error) {
       console.error('Erreur lors de la récupération du profil:', error)
