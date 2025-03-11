@@ -9,7 +9,8 @@
     "dev": "nodemon server.js",
     "test": "jest",
     "migrate": "prisma migrate dev",
-    "seed": "prisma db seed"
+    "seed": "node prisma/seed.js",
+    "build": "prisma generate && prisma migrate deploy"
   },
   "keywords": [],
   "author": "",
