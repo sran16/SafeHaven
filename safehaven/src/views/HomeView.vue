@@ -7,6 +7,13 @@ const posts = ref([])
 const loading = ref(true)
 const router = useRouter()
 
+// Fonction utilitaire pour obtenir l'URL de l'API sans slash final
+const getApiUrl = () => {
+  return import.meta.env.VITE_API_URL.endsWith('/') 
+    ? import.meta.env.VITE_API_URL.slice(0, -1) 
+    : import.meta.env.VITE_API_URL;
+};
+
 const fetchPosts = async () => {
   try {
     const token = localStorage.getItem('token')
@@ -16,7 +23,11 @@ const fetchPosts = async () => {
       return
     }
 
-    const response = await axios.get(`${import.meta.env.VITE_API_URL}/api/experiences`, {
+    const apiUrl = getApiUrl();
+    console.log('URL de l\'API:', apiUrl)
+    console.log('URL complète:', `${apiUrl}/api/experiences`)
+    
+    const response = await axios.get(`${apiUrl}/api/experiences`, {
       headers: {
         'Authorization': `Bearer ${token}`
       }
@@ -52,7 +63,8 @@ const likePost = async (postId) => {
       return
     }
 
-    const response = await axios.post(`${import.meta.env.VITE_API_URL}/api/experiences/${postId}/like`, {}, {
+    const apiUrl = getApiUrl();
+    const response = await axios.post(`${apiUrl}/api/experiences/${postId}/like`, {}, {
       headers: {
         'Authorization': `Bearer ${token}`
       }
@@ -89,8 +101,9 @@ const addComment = async (post) => {
     const commentContent = post.newComment.trim()
     post.newComment = '' // Vider l'input immédiatement
 
+    const apiUrl = getApiUrl();
     const response = await axios.post(
-      `${import.meta.env.VITE_API_URL}/api/experiences/${post.id_experience}/comments`,
+      `${apiUrl}/api/experiences/${post.id_experience}/comments`,
       { content: commentContent },
       {
         headers: {
@@ -141,6 +154,16 @@ const formatDate = (date) => {
 }
 
 onMounted(() => {
+  // Test de l'API sans authentification
+  const apiUrl = getApiUrl();
+  axios.get(`${apiUrl}/api/test`)
+    .then(response => {
+      console.log('Test API réussi:', response.data)
+    })
+    .catch(error => {
+      console.error('Erreur lors du test API:', error)
+    })
+    
   fetchPosts()
 })
 </script>

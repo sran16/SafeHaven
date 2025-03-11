@@ -34,6 +34,13 @@ import axios from 'axios'
 const router = useRouter()
 const isSubmitting = ref(false)
 
+// Fonction utilitaire pour obtenir l'URL de l'API sans slash final
+const getApiUrl = () => {
+  return import.meta.env.VITE_API_URL.endsWith('/') 
+    ? import.meta.env.VITE_API_URL.slice(0, -1) 
+    : import.meta.env.VITE_API_URL;
+};
+
 const postForm = ref({
   content: ''
 })
@@ -42,7 +49,8 @@ const handleSubmit = async () => {
   isSubmitting.value = true
   
   try {
-    await axios.post(`${import.meta.env.VITE_API_URL}/api/experiences`, {
+    const apiUrl = getApiUrl();
+    await axios.post(`${apiUrl}/api/experiences`, {
       content: postForm.value.content
     }, {
       headers: {

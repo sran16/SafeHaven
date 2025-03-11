@@ -29,11 +29,20 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
 
+  // Fonction utilitaire pour obtenir l'URL de l'API sans slash final
+  const getApiUrl = () => {
+    return import.meta.env.VITE_API_URL.endsWith('/') 
+      ? import.meta.env.VITE_API_URL.slice(0, -1) 
+      : import.meta.env.VITE_API_URL;
+  };
+
   const login = async (name, password) => {
     try {
       console.log('Tentative de connexion avec:', { name });
       
-      const response = await axios.post(`${import.meta.env.VITE_API_URL}/api/users/login`, {
+      const apiUrl = getApiUrl();
+      
+      const response = await axios.post(`${apiUrl}/api/users/login`, {
         name,
         password
       })
@@ -74,7 +83,9 @@ export const useAuthStore = defineStore('auth', () => {
     try {
       console.log('Tentative d\'inscription avec:', { name, email });
       
-      const response = await axios.post(`${import.meta.env.VITE_API_URL}/api/users/register`, {
+      const apiUrl = getApiUrl();
+      
+      const response = await axios.post(`${apiUrl}/api/users/register`, {
         name,
         email,
         password
@@ -114,7 +125,8 @@ export const useAuthStore = defineStore('auth', () => {
 
   const logout = async () => {
     try {
-      await axios.post(`${import.meta.env.VITE_API_URL}/api/users/logout`)
+      const apiUrl = getApiUrl();
+      await axios.post(`${apiUrl}/api/users/logout`)
     } catch (error) {
       console.error('Erreur lors de la déconnexion:', error)
     } finally {
@@ -126,7 +138,8 @@ export const useAuthStore = defineStore('auth', () => {
 
   const fetchUser = async () => {
     try {
-      const response = await axios.get(`${import.meta.env.VITE_API_URL}/api/users/profile`)
+      const apiUrl = getApiUrl();
+      const response = await axios.get(`${apiUrl}/api/users/profile`)
       setUser({
         id: response.data.id_user,
         name: response.data.name
