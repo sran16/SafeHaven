@@ -28,6 +28,13 @@ app.use((err, req, res, next) => {
     });
 });
 
+app.get('/health', (req, res) => {
+    res.status(200).json({
+        success: true,
+        message: 'Server is running!'
+    });
+});
+
 const PORT = process.env.PORT || 3000;
 
 // Ajout de gestion d'erreur pour le serveur
