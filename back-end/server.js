@@ -19,7 +19,7 @@ const prisma = new PrismaClient();
 
 // Configuration CORS
 app.use(cors({
-  origin: 'http://localhost:5173', // URL du front-end Vue.js
+  origin: ['http://localhost:5173', 'https://safe-haven-eosin.vercel.app'], // URLs du front-end
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization']
@@ -37,6 +37,14 @@ app.use('/uploads', express.static(join(__dirname, 'uploads')));
 // Route de test principale
 app.get("/", (req, res) => {
   res.send("API SafeHaven est en ligne 🚀");
+});
+
+// Route de santé pour le monitoring
+app.get("/health", (req, res) => {
+  res.status(200).json({
+    success: true,
+    message: 'Server is running!'
+  });
 });
 
 // Route de test pour le chatbot
