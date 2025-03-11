@@ -19,7 +19,7 @@ const prisma = new PrismaClient();
 
 // Configuration CORS
 app.use(cors({
-  origin: ['http://localhost:5173', 'https://safe-haven-eosin.vercel.app'], // URLs du front-end
+  origin: ['http://localhost:5173', 'https://safe-haven-kappa.vercel.app'], // URLs du front-end
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization']
