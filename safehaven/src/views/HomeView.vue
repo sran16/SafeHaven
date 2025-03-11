@@ -16,7 +16,7 @@ const fetchPosts = async () => {
       return
     }
 
-    const response = await axios.get('http://localhost:3000/api/experiences', {
+    const response = await axios.get(`${import.meta.env.VITE_API_URL}/api/experiences`, {
       headers: {
         'Authorization': `Bearer ${token}`
       }
@@ -90,7 +90,7 @@ const addComment = async (post) => {
     post.newComment = '' // Vider l'input immédiatement
 
     const response = await axios.post(
-      `/api/experiences/${post.id_experience}/comments`,
+      `${import.meta.env.VITE_API_URL}/api/experiences/${post.id_experience}/comments`,
       { content: commentContent },
       {
         headers: {

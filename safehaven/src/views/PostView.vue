@@ -42,7 +42,7 @@ const handleSubmit = async () => {
   isSubmitting.value = true
   
   try {
-    await axios.post('http://localhost:3000/api/experiences', {
+    await axios.post(`${import.meta.env.VITE_API_URL}/api/experiences`, {
       content: postForm.value.content
     }, {
       headers: {
