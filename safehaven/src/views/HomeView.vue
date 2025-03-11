@@ -52,7 +52,7 @@ const likePost = async (postId) => {
       return
     }
 
-    const response = await axios.post(`/api/experiences/${postId}/like`, {}, {
+    const response = await axios.post(`${import.meta.env.VITE_API_URL}/api/experiences/${postId}/like`, {}, {
       headers: {
         'Authorization': `Bearer ${token}`
       }

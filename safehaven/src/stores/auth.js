@@ -33,7 +33,7 @@ export const useAuthStore = defineStore('auth', () => {
     try {
       console.log('Tentative de connexion avec:', { name });
       
-      const response = await axios.post('/api/users/login', {
+      const response = await axios.post(`${import.meta.env.VITE_API_URL}/api/users/login`, {
         name,
         password
       })
@@ -74,7 +74,7 @@ export const useAuthStore = defineStore('auth', () => {
     try {
       console.log('Tentative d\'inscription avec:', { name, email });
       
-      const response = await axios.post('/api/users/register', {
+      const response = await axios.post(`${import.meta.env.VITE_API_URL}/api/users/register`, {
         name,
         email,
         password
@@ -114,7 +114,7 @@ export const useAuthStore = defineStore('auth', () => {
 
   const logout = async () => {
     try {
-      await axios.post('/api/users/logout')
+      await axios.post(`${import.meta.env.VITE_API_URL}/api/users/logout`)
     } catch (error) {
       console.error('Erreur lors de la déconnexion:', error)
     } finally {
@@ -126,7 +126,7 @@ export const useAuthStore = defineStore('auth', () => {
 
   const fetchUser = async () => {
     try {
-      const response = await axios.get('/api/users/profile')
+      const response = await axios.get(`${import.meta.env.VITE_API_URL}/api/users/profile`)
       setUser({
         id: response.data.id_user,
         name: response.data.name
