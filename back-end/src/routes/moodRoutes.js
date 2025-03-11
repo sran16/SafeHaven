@@ -1,11 +1,15 @@
 import express from 'express';
 import moodController from '../controllers/moodController.js';
-import { validateMood } from '../middlewares/validation.js';
-import auth from '../middlewares/auth.js';
+import authMiddleware from '../middlewares/authMiddleware.js';
 
 const router = express.Router();
 
-router.post('/', [auth, validateMood], moodController.createMood);
-router.get('/user/:userId', auth, moodController.getUserMoods);
+// Appliquer l'authentification à toutes les routes
+router.use(authMiddleware);
+
+// Routes pour les humeurs
+router.post('/', moodController.createMood);
+router.get('/', moodController.getUserMoods);
+router.get('/stats', moodController.getMoodStats);
 
 export default router; 

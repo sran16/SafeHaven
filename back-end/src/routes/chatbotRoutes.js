@@ -1,11 +1,23 @@
 import express from 'express';
 import chatbotController from '../controllers/chatbotController.js';
-import auth from '../middlewares/auth.js';
+import authMiddleware from '../middlewares/authMiddleware.js';
 
 const router = express.Router();
 
-router.post('/session', chatbotController.startSession);
-router.post('/message', chatbotController.sendMessage);
-router.get('/history/:userId', chatbotController.getHistory);
+// Routes protégées par l'authentification
+router.use(authMiddleware);
+
+// Gestion des sessions
+router.post('/session/start', chatbotController.startSession);
+router.post('/session/end', chatbotController.endSession);
+
+// Gestion des messages
+router.post('/message', chatbotController.processMessage);
+router.get('/history', chatbotController.getConversationHistory);
+
+// Analyse et rapports
+router.get('/analysis', chatbotController.getSentimentAnalysis);
+router.get('/recommendations', chatbotController.getRecommendations);
+router.get('/report', chatbotController.generateReport);
 
 export default router; 

@@ -2,6 +2,19 @@ import { PrismaClient } from '@prisma/client';
 const prisma = new PrismaClient();
 
 class ChatbotService {
+    // Récupère la session active d'un utilisateur
+    async getActiveSession(userId) {
+        return await prisma.chatbot_sessions.findFirst({
+            where: {
+                userId: userId,
+                endDate: null
+            },
+            include: {
+                ia: true
+            }
+        });
+    }
+
     // Crée une nouvelle session quand un utilisateur commence à chatter
     async createSession(userId) {
         return await prisma.chatbot_sessions.create({
