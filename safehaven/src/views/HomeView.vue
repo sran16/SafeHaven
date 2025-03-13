@@ -24,8 +24,6 @@ const fetchPosts = async () => {
     }
 
     const apiUrl = getApiUrl();
-    console.log('URL de l\'API:', apiUrl)
-    console.log('URL complète:', `${apiUrl}/api/experiences`)
     
     const response = await axios.get(`${apiUrl}/api/experiences`, {
       headers: {

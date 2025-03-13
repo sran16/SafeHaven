@@ -113,8 +113,13 @@ Si la personne exprime une détresse importante : reste calme, valide ses émoti
                 });
             }
 
+            const conversationHistory = await chatbotService.getConversationHistory(userId);
+
             try {
-                console.log('Tentative d\'appel à l\'API Mistral');
+                console.log('Tentative d\'appel à l\'API Mistral 2', [
+                    this.systemPrompt,
+                    { role: "user", content: message }
+                ]);
                 const response = await fetch(this.MISTRAL_API_URL, {
                     method: 'POST',
                     headers: {
@@ -125,6 +130,9 @@ Si la personne exprime une détresse importante : reste calme, valide ses émoti
                         model: "mistral-tiny",
                         messages: [
                             this.systemPrompt,
+                            { role: "user", content: 
+                                conversationHistory
+                             },
                             { role: "user", content: message }
                         ],
                         temperature: 0.7,
@@ -235,14 +243,24 @@ Si la personne exprime une détresse importante : reste calme, valide ses émoti
                 return successResponse(res, 200, 'Message processed successfully', response);
             }
 
+            const conversationHistory = await chatbotService.getConversationHistory(userId);
             try {
-                console.log('Tentative d\'appel à l\'API Mistral');
+                console.log('Tentative d\'appel à l\'API Mistral 2', [
+                    this.systemPrompt,
+                    { role: "user", content: 
+                        conversationHistory
+                     },
+                    { role: "user", content: message }
+                ]);
                 const mistralResponse = await axios.post(
                     this.MISTRAL_API_URL,
                     {
                         model: "mistral-tiny",
                         messages: [
                             this.systemPrompt,
+                            { role: "user", content: 
+                                conversationHistory
+                             },
                             { role: "user", content: message }
                         ],
                         temperature: 0.7,
