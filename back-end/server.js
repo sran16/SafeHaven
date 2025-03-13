@@ -52,6 +52,15 @@ app.get('/api/chat/test', (req, res) => {
   res.json({ message: 'Chatbot route is working' });
 });
 
+// Route de test simple
+app.get('/api/test', (req, res) => {
+  res.json({ 
+    success: true, 
+    message: 'API is working!',
+    timestamp: new Date().toISOString()
+  });
+});
+
 // Routes API
 app.use('/api/users', userRoutes);
 app.use('/api/chat', chatbotRoutes);

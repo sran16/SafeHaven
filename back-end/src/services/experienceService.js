@@ -44,24 +44,42 @@ class ExperienceService {
         try {
             const experiences = await prisma.experiences.findMany({
                 include: {
-                    user: true
+                    user: true,
+                    answers: {
+                        include: {
+                            user: true
+                        },
+                        orderBy: {
+                            publicationDate: 'desc'
+                        }
+                    }
                 },
                 orderBy: {
                     publication_date: 'desc'
                 }
             });
 
-            return experiences.map(exp => ({
-                id_experience: exp.id_experience,
-                content: exp.content,
-                publication_date: exp.publication_date,
-                user: {
-                    id_user: exp.user.id_user,
-                    name: exp.user.name
-                },
-                likes: likesCount.get(exp.id_experience) || 0,
-                isLiked: false,
-                comments: []
+            return Promise.all(experiences.map(async (exp) => {
+                // Transformer les réponses en commentaires
+                const comments = exp.answers.map(answer => ({
+                    id: answer.id_response,
+                    content: answer.content,
+                    author: answer.user.name || 'Utilisateur inconnu',
+                    createdAt: answer.publicationDate
+                }));
+
+                return {
+                    id_experience: exp.id_experience,
+                    content: exp.content,
+                    publication_date: exp.publication_date,
+                    user: {
+                        id_user: exp.user.id_user,
+                        name: exp.user.name
+                    },
+                    likes: likesCount.get(exp.id_experience) || 0,
+                    isLiked: false,
+                    comments: comments
+                };
             }));
         } catch (error) {
             console.error('Error in getAllExperiences:', error);
