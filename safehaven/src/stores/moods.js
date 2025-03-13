@@ -2,6 +2,7 @@ import { defineStore } from 'pinia'
 import { ref } from 'vue'
 import axios from 'axios'
 import { useAuthStore } from './auth'
+import { getApiUrl, getAuthHeaders } from '../utils/api'
 
 export const useMoodStore = defineStore('mood', {
   state: () => ({
@@ -26,10 +27,13 @@ export const useMoodStore = defineStore('mood', {
           userId: authStore.user.id
         })
 
-        const response = await axios.post('/api/moods', {
+        const apiUrl = getApiUrl();
+        console.log('URL complète pour createMood:', `${apiUrl}/api/moods`);
+        
+        const response = await axios.post(`${apiUrl}/api/moods`, {
           ...moodData,
           userId: authStore.user.id
-        })
+        }, getAuthHeaders())
 
         console.log('Réponse de création d\'humeur:', response.data)
         
@@ -57,7 +61,10 @@ export const useMoodStore = defineStore('mood', {
         
         console.log('Récupération des humeurs pour l\'utilisateur:', authStore.user.id)
 
-        const response = await axios.get('/api/moods')
+        const apiUrl = getApiUrl();
+        console.log('URL complète pour fetchMoods:', `${apiUrl}/api/moods`);
+        
+        const response = await axios.get(`${apiUrl}/api/moods`, getAuthHeaders())
         console.log('Humeurs reçues:', response.data)
         
         if (response.data.success) {

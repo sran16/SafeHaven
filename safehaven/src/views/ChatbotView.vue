@@ -44,6 +44,7 @@
 <script setup>
 import { ref, onMounted, nextTick } from 'vue'
 import axios from 'axios'
+import { getApiUrl, getAuthHeaders } from '../utils/api'
 
 const messages = ref([])
 const newMessage = ref('')
@@ -106,31 +107,26 @@ const sendMessage = async () => {
       throw new Error('Session invalide, veuillez vous reconnecter')
     }
 
+    const apiUrl = getApiUrl();
+    console.log('URL complète pour chat session:', `${apiUrl}/api/chat/session/start`);
+
     // Vérifier si une session de chat existe, sinon en créer une
     try {
-      await axios.post('/api/chat/session/start', 
+      await axios.post(`${apiUrl}/api/chat/session/start`, 
         { userId: user.id },
-        {
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json'
-          }
-        }
+        getAuthHeaders()
       )
     } catch (error) {
       console.log('Session peut-être déjà existante:', error)
       // Continue même si la session existe déjà
     }
 
+    console.log('URL complète pour chat message:', `${apiUrl}/api/chat/message`);
+    
     // Envoyer le message
-    const response = await axios.post('/api/chat/message', 
+    const response = await axios.post(`${apiUrl}/api/chat/message`, 
       { message: messageText },
-      {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
-      }
+      getAuthHeaders()
     )
 
     console.log('Réponse du serveur:', response.data)

@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
 import axios from 'axios'
+import { getApiUrl, getAuthHeaders } from '../utils/api'
 
 export const usePostsStore = defineStore('posts', () => {
   const posts = ref([])
@@ -12,7 +13,10 @@ export const usePostsStore = defineStore('posts', () => {
     error.value = null
     
     try {
-      const response = await axios.get('/api/experiences')
+      const apiUrl = getApiUrl();
+      console.log('URL complète pour fetchPosts:', `${apiUrl}/api/experiences`);
+      
+      const response = await axios.get(`${apiUrl}/api/experiences`, getAuthHeaders())
       posts.value = response.data.data || []
       console.log('Posts récupérés:', posts.value)
     } catch (err) {
@@ -46,10 +50,14 @@ export const usePostsStore = defineStore('posts', () => {
         formData.append('isPrivate', postData.isPrivate)
       }
 
-      const response = await axios.post('/api/experiences', formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data'
-        }
+      const apiUrl = getApiUrl();
+      console.log('URL complète pour createPost:', `${apiUrl}/api/experiences`);
+      
+      const headers = getAuthHeaders().headers;
+      headers['Content-Type'] = 'multipart/form-data';
+
+      const response = await axios.post(`${apiUrl}/api/experiences`, formData, {
+        headers: headers
       })
 
       posts.value.unshift(response.data.data)
@@ -65,7 +73,10 @@ export const usePostsStore = defineStore('posts', () => {
 
   const likePost = async (postId) => {
     try {
-      const response = await axios.post(`/api/experiences/${postId}/like`)
+      const apiUrl = getApiUrl();
+      console.log('URL complète pour likePost:', `${apiUrl}/api/experiences/${postId}/like`);
+      
+      const response = await axios.post(`${apiUrl}/api/experiences/${postId}/like`, {}, getAuthHeaders())
       const post = posts.value.find(p => p.id_experience === postId)
       if (post) {
         post.isLiked = response.data.data.isLiked
@@ -80,7 +91,10 @@ export const usePostsStore = defineStore('posts', () => {
 
   const addComment = async (postId, content) => {
     try {
-      const response = await axios.post(`/api/experiences/${postId}/comments`, { content })
+      const apiUrl = getApiUrl();
+      console.log('URL complète pour addComment:', `${apiUrl}/api/experiences/${postId}/comments`);
+      
+      const response = await axios.post(`${apiUrl}/api/experiences/${postId}/comments`, { content }, getAuthHeaders())
       const post = posts.value.find(p => p.id_experience === postId)
       if (post) {
         if (!post.comments) post.comments = []
@@ -95,7 +109,10 @@ export const usePostsStore = defineStore('posts', () => {
 
   const deletePost = async (postId) => {
     try {
-      await axios.delete(`/api/experiences/${postId}`)
+      const apiUrl = getApiUrl();
+      console.log('URL complète pour deletePost:', `${apiUrl}/api/experiences/${postId}`);
+      
+      await axios.delete(`${apiUrl}/api/experiences/${postId}`, getAuthHeaders())
       posts.value = posts.value.filter(p => p.id !== postId)
       return { success: true }
     } catch (err) {
@@ -109,7 +126,10 @@ export const usePostsStore = defineStore('posts', () => {
     error.value = null
 
     try {
-      const response = await axios.get(`/api/experiences/user/${userId}`)
+      const apiUrl = getApiUrl();
+      console.log('URL complète pour getUserPosts:', `${apiUrl}/api/experiences/user/${userId}`);
+      
+      const response = await axios.get(`${apiUrl}/api/experiences/user/${userId}`, getAuthHeaders())
       return response.data.data || []
     } catch (err) {
       console.error('Erreur lors du chargement des posts de l\'utilisateur:', err)
