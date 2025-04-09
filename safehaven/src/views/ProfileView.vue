@@ -55,7 +55,7 @@
           v-for="tab in tabs"
           :key="tab.id"
           :class="['tab-btn', { active: currentTab === tab.id }]"
-          @click="currentTab = tab.id"
+          @click="handleTabChange(tab.id)"
         >
           {{ tab.name }}
         </button>
@@ -77,13 +77,34 @@
           </div>
         </div>
 
-        <!-- Saved -->
-        <div v-else class="saved-posts">
-          <div v-for="post in savedPosts" :key="post.id" class="saved-post">
-            <img v-if="post.image" :src="post.image" :alt="post.content" class="post-thumbnail" />
-            <div class="saved-post-content">
-              <p>{{ post.content }}</p>
-              <span class="saved-date">Sauvegardé le {{ formatDate(post.savedAt) }}</span>
+        <!-- Chat -->
+        <div v-else-if="currentTab === 'chat'" class="chat-history">
+          <div v-if="loadingChat" class="loading-chat">
+            <div class="loading-spinner"></div>
+            <p>Chargement de l'historique...</p>
+          </div>
+          
+          <div v-else-if="chatError" class="chat-error">
+            <p>{{ chatError }}</p>
+            <button @click="fetchChatHistory" class="retry-btn">Réessayer</button>
+          </div>
+          
+          <div v-else-if="chatMessages.length === 0" class="empty-chat">
+            <p>Vous n'avez pas encore de conversation avec Haven.</p>
+            <button @click="$router.push('/chatbot')" class="start-chat-btn">
+              Commencer une conversation
+            </button>
+          </div>
+          
+          <div v-else class="chat-messages">
+            <div class="chat-date-header">Historique de vos conversations</div>
+            <div v-for="message in chatMessages" :key="message.id" 
+              :class="['chat-message', message.isUser ? 'user-message' : 'bot-message']">
+              <div class="message-header">
+                <span class="message-sender">{{ message.sender }}</span>
+                <span class="message-time">{{ formatChatTime(message.timestamp) }}</span>
+              </div>
+              <div class="message-content">{{ message.content }}</div>
             </div>
           </div>
         </div>
@@ -136,6 +157,7 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import axios from 'axios'
+import { getApiUrl, getAuthHeaders } from '../utils/api'
 
 const user = ref({
   username: '',
@@ -151,6 +173,9 @@ const showEditProfile = ref(false)
 const fileInput = ref(null)
 const userPosts = ref([])
 const savedPosts = ref([])
+const chatMessages = ref([])
+const loadingChat = ref(false)
+const chatError = ref(null)
 
 const editForm = ref({
   username: '',
@@ -160,7 +185,7 @@ const editForm = ref({
 const tabs = [
   { id: 'posts', name: 'Publications' },
   { id: 'mood', name: 'Suivi d\'humeur' },
-  { id: 'saved', name: 'Sauvegardés' }
+  { id: 'chat', name: 'Historique du chat' },
 ]
 
 const formatDate = (date) => {
@@ -183,12 +208,14 @@ const handleAvatarChange = async (event) => {
   formData.append('avatar', file)
 
   try {
-    const response = await axios.post('http://localhost:3000/api/users/avatar', formData, {
-      headers: {
-        'Content-Type': 'multipart/form-data',
-        Authorization: `Bearer ${localStorage.getItem('token')}`
-      }
+    const apiUrl = getApiUrl();
+    const headers = getAuthHeaders().headers;
+    headers['Content-Type'] = 'multipart/form-data';
+    
+    const response = await axios.post(`${apiUrl}/api/users/avatar`, formData, {
+      headers: headers
     })
+    
     user.value.avatar = response.data.avatarUrl
   } catch (error) {
     console.error('Erreur lors du changement d\'avatar:', error)
@@ -197,11 +224,9 @@ const handleAvatarChange = async (event) => {
 
 const updateProfile = async () => {
   try {
-    await axios.put('http://localhost:3000/api/users/profile', editForm.value, {
-      headers: {
-        Authorization: `Bearer ${localStorage.getItem('token')}`
-      }
-    })
+    const apiUrl = getApiUrl();
+    await axios.put(`${apiUrl}/api/users/profile`, editForm.value, getAuthHeaders())
+    
     user.value.username = editForm.value.username
     showEditProfile.value = false
   } catch (error) {
@@ -209,23 +234,113 @@ const updateProfile = async () => {
   }
 }
 
+const fetchChatHistory = async () => {
+  try {
+    loadingChat.value = true;
+    chatError.value = null;
+    
+    const apiUrl = getApiUrl();
+    console.log('Tentative de récupération de l\'historique du chat:', `${apiUrl}/api/chat/history`);
+    const response = await axios.get(`${apiUrl}/api/chat/history`, getAuthHeaders());
+    
+    if (response.data && response.data.success) {
+      // Traitement de l'historique du chat qui est une chaîne de texte
+      const historyText = response.data.data || '';
+      
+      if (!historyText || historyText.trim() === '') {
+        chatMessages.value = [];
+        return;
+      }
+      
+      // Diviser l'historique en messages individuels
+      const conversations = historyText.split('---\n').filter(conv => conv.trim() !== '');
+      
+      // Transformer chaque conversation en objets de message
+      chatMessages.value = conversations.map((conv, index) => {
+        const lines = conv.trim().split('\n');
+        const userLine = lines.find(line => line.startsWith('User:'));
+        const botLine = lines.find(line => line.startsWith('Bot:'));
+        
+        const userMessage = userLine ? userLine.replace('User:', '').trim() : '';
+        const botMessage = botLine ? botLine.replace('Bot:', '').trim() : '';
+        
+        return [
+          {
+            id: `user-${index}`,
+            sender: 'Vous',
+            content: userMessage,
+            timestamp: new Date(),
+            isUser: true
+          },
+          {
+            id: `bot-${index}`,
+            sender: 'Haven',
+            content: botMessage,
+            timestamp: new Date(),
+            isUser: false
+          }
+        ];
+      }).flat();
+    } else {
+      chatError.value = 'Impossible de récupérer l\'historique du chat';
+    }
+  } catch (error) {
+    console.error('Erreur lors de la récupération de l\'historique du chat:', error);
+    chatError.value = 'Une erreur est survenue lors de la récupération de l\'historique du chat';
+  } finally {
+    loadingChat.value = false;
+  }
+};
+
+// Charger l'historique du chat lorsque l'onglet est sélectionné
+const handleTabChange = (tabId) => {
+  currentTab.value = tabId;
+  if (tabId === 'chat') {
+    fetchChatHistory();
+  }
+};
+
 const fetchUserData = async () => {
   try {
-    const response = await axios.get('http://localhost:3000/api/users/profile', {
-      headers: {
-        Authorization: `Bearer ${localStorage.getItem('token')}`
-      }
-    })
-    user.value = response.data
-    editForm.value.username = response.data.username
-    editForm.value.bio = response.data.bio || ''
+    const apiUrl = getApiUrl();
+    console.log('Tentative de récupération du profil utilisateur:', `${apiUrl}/api/users/profile`);
+    
+    const authHeaders = getAuthHeaders();
+    console.log('En-têtes d\'authentification pour le profil:', JSON.stringify(authHeaders));
+    
+    const response = await axios.get(`${apiUrl}/api/users/profile`, authHeaders);
+    
+    console.log('Réponse du profil utilisateur:', response.data);
+    user.value = response.data;
+    editForm.value.username = response.data.username || response.data.name;
+    editForm.value.bio = response.data.bio || '';
   } catch (error) {
-    console.error('Erreur lors du chargement du profil:', error)
+    console.error('Erreur lors du chargement du profil:', error);
+    if (error.response) {
+      console.error('Détails de l\'erreur:', {
+        status: error.response.status,
+        statusText: error.response.statusText,
+        data: error.response.data
+      });
+    }
   }
 }
 
+const formatChatTime = (date) => {
+  return new Date(date).toLocaleString('fr-FR', {
+    day: 'numeric',
+    month: 'short',
+    hour: '2-digit',
+    minute: '2-digit'
+  });
+};
+
 onMounted(() => {
   fetchUserData()
+  // Charger l'historique du chat si c'est l'onglet actif au chargement
+  if (currentTab.value === 'chat') {
+    fetchChatHistory();
+  }
 })
 </script>
 
@@ -590,5 +705,110 @@ onMounted(() => {
   .stat-label {
     font-size: 0.8rem;
   }
+}
+
+/* Styles pour l'historique du chat */
+.chat-history {
+  background: white;
+  border-radius: var(--border-radius-lg);
+  padding: var(--spacing-md);
+  box-shadow: var(--shadow-soft);
+  min-height: 400px;
+}
+
+.loading-chat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 300px;
+}
+
+.chat-error {
+  text-align: center;
+  padding: var(--spacing-lg);
+  color: #e57373;
+}
+
+.retry-btn {
+  margin-top: var(--spacing-md);
+  padding: var(--spacing-sm) var(--spacing-md);
+  background-color: var(--primary-color);
+  color: white;
+  border: none;
+  border-radius: var(--border-radius-sm);
+  cursor: pointer;
+}
+
+.empty-chat {
+  text-align: center;
+  padding: var(--spacing-lg);
+  color: var(--text-secondary);
+}
+
+.start-chat-btn {
+  margin-top: var(--spacing-md);
+  padding: var(--spacing-sm) var(--spacing-md);
+  background-color: var(--primary-color);
+  color: white;
+  border: none;
+  border-radius: var(--border-radius-sm);
+  cursor: pointer;
+}
+
+.chat-date-header {
+  text-align: center;
+  padding: var(--spacing-sm);
+  margin: var(--spacing-md) 0;
+  font-weight: 500;
+  color: var(--text-secondary);
+  border-bottom: 1px solid var(--secondary-color);
+}
+
+.chat-messages {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md);
+}
+
+.chat-message {
+  padding: var(--spacing-md);
+  border-radius: var(--border-radius-md);
+  max-width: 80%;
+}
+
+.user-message {
+  align-self: flex-end;
+  background-color: #e3f2fd;
+  border-top-right-radius: 0;
+}
+
+.bot-message {
+  align-self: flex-start;
+  background-color: #f5f5f5;
+  border-top-left-radius: 0;
+}
+
+.message-header {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: var(--spacing-xs);
+  font-size: 0.8rem;
+}
+
+.message-sender {
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.message-time {
+  color: var(--text-secondary);
+}
+
+.message-content {
+  font-size: 0.95rem;
+  line-height: 1.4;
+  color: var(--text-primary);
+  white-space: pre-wrap;
 }
 </style> 
