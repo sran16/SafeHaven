@@ -1,11 +1,14 @@
 import { defineStore } from 'pinia'
-import axios from 'axios'
 import { ref, computed } from 'vue'
 import router from '../router'
+import axios from 'axios'
+import { getApiUrl, getAuthHeaders } from '../utils/api'
 
 export const useAuthStore = defineStore('auth', () => {
   const user = ref(null)
   const token = ref(localStorage.getItem('token'))
+  const isLoading = ref(false)
+  const error = ref(null)
 
   const isAuthenticated = computed(() => !!token.value)
 
@@ -13,10 +16,8 @@ export const useAuthStore = defineStore('auth', () => {
     token.value = newToken
     if (newToken) {
       localStorage.setItem('token', newToken)
-      axios.defaults.headers.common['Authorization'] = `Bearer ${newToken}`
     } else {
       localStorage.removeItem('token')
-      delete axios.defaults.headers.common['Authorization']
     }
   }
 
@@ -29,23 +30,20 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
 
-  // Fonction utilitaire pour obtenir l'URL de l'API sans slash final
-  const getApiUrl = () => {
-    return import.meta.env.VITE_API_URL.endsWith('/') 
-      ? import.meta.env.VITE_API_URL.slice(0, -1) 
-      : import.meta.env.VITE_API_URL;
-  };
-
   const login = async (name, password) => {
     try {
+      isLoading.value = true
+      error.value = null
       console.log('Tentative de connexion avec:', { name });
       
       const apiUrl = getApiUrl();
+      console.log('URL API utilisée pour connexion:', apiUrl);
       
-      const response = await axios.post(`${apiUrl}/api/users/login`, {
-        name,
-        password
-      })
+      // Effectuer la requête de connexion
+      const response = await axios.post(`${apiUrl}/api/users/login`, 
+        { name, password }, 
+        getAuthHeaders()
+      );
       
       console.log('Réponse de connexion:', response.data);
       
@@ -54,7 +52,6 @@ export const useAuthStore = defineStore('auth', () => {
         const token = response.data.data.token;
         
         console.log('Données utilisateur:', userData);
-        console.log('Token:', token);
         
         setToken(token)
         setUser({
@@ -65,31 +62,38 @@ export const useAuthStore = defineStore('auth', () => {
         router.push('/home')
         return { success: true }
       } else {
+        error.value = response.data.message
         return {
           success: false,
           error: response.data.message
         }
       }
-    } catch (error) {
-      console.error('Erreur de connexion détaillée:', error.response?.data || error);
+    } catch (err) {
+      console.error('Erreur de connexion détaillée:', err);
+      error.value = err.response?.data?.message || 'Erreur de connexion'
       return {
         success: false,
-        error: error.response?.data?.message || 'Erreur de connexion'
+        error: error.value
       }
+    } finally {
+      isLoading.value = false
     }
   }
 
   const register = async (name, email, password) => {
     try {
+      isLoading.value = true
+      error.value = null
       console.log('Tentative d\'inscription avec:', { name, email });
       
       const apiUrl = getApiUrl();
+      console.log('URL API utilisée pour inscription:', apiUrl);
       
-      const response = await axios.post(`${apiUrl}/api/users/register`, {
-        name,
-        email,
-        password
-      })
+      // Effectuer la requête d'inscription
+      const response = await axios.post(`${apiUrl}/api/users/register`, 
+        { name, email, password }, 
+        getAuthHeaders()
+      );
       
       console.log('Réponse d\'inscription:', response.data);
       
@@ -98,7 +102,6 @@ export const useAuthStore = defineStore('auth', () => {
         const token = response.data.data.token;
         
         console.log('Données utilisateur:', userData);
-        console.log('Token:', token);
         
         setToken(token)
         setUser({
@@ -108,25 +111,29 @@ export const useAuthStore = defineStore('auth', () => {
         
         router.push('/home')
         return { success: true }
+      } else {
+        error.value = response.data.message
+        return {
+          success: false,
+          error: response.data.message
+        }
       }
-      
+    } catch (err) {
+      console.error('Erreur d\'inscription détaillée:', err);
+      error.value = err.response?.data?.message || 'Erreur d\'inscription'
       return {
         success: false,
-        error: response.data.message
+        error: error.value
       }
-    } catch (error) {
-      console.error('Erreur d\'inscription détaillée:', error.response?.data || error);
-      return {
-        success: false,
-        error: error.response?.data?.message || 'Erreur d\'inscription'
-      }
+    } finally {
+      isLoading.value = false
     }
   }
 
   const logout = async () => {
     try {
       const apiUrl = getApiUrl();
-      await axios.post(`${apiUrl}/api/users/logout`)
+      await axios.post(`${apiUrl}/api/users/logout`, {}, getAuthHeaders())
     } catch (error) {
       console.error('Erreur lors de la déconnexion:', error)
     } finally {
@@ -139,7 +146,7 @@ export const useAuthStore = defineStore('auth', () => {
   const fetchUser = async () => {
     try {
       const apiUrl = getApiUrl();
-      const response = await axios.get(`${apiUrl}/api/users/profile`)
+      const response = await axios.get(`${apiUrl}/api/users/profile`, getAuthHeaders())
       setUser({
         id: response.data.id_user,
         name: response.data.name
@@ -154,7 +161,6 @@ export const useAuthStore = defineStore('auth', () => {
 
   // Initialisation
   if (token.value) {
-    axios.defaults.headers.common['Authorization'] = `Bearer ${token.value}`
     const savedUser = localStorage.getItem('user')
     if (savedUser) {
       setUser(JSON.parse(savedUser))
@@ -167,6 +173,8 @@ export const useAuthStore = defineStore('auth', () => {
     user,
     token,
     isAuthenticated,
+    isLoading,
+    error,
     login,
     register,
     logout,

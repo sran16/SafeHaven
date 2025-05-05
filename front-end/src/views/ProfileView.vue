@@ -246,14 +246,18 @@ const fetchChatHistory = async () => {
     if (response.data && response.data.success) {
       // Traitement de l'historique du chat qui est une chaîne de texte
       const historyText = response.data.data || '';
+      console.log('Historique brut reçu:', historyText);
       
       if (!historyText || historyText.trim() === '') {
+        console.log('Aucun historique trouvé');
         chatMessages.value = [];
+        loadingChat.value = false;
         return;
       }
       
       // Diviser l'historique en messages individuels
       const conversations = historyText.split('---\n').filter(conv => conv.trim() !== '');
+      console.log('Nombre de conversations trouvées:', conversations.length);
       
       // Transformer chaque conversation en objets de message
       chatMessages.value = conversations.map((conv, index) => {
@@ -264,24 +268,32 @@ const fetchChatHistory = async () => {
         const userMessage = userLine ? userLine.replace('User:', '').trim() : '';
         const botMessage = botLine ? botLine.replace('Bot:', '').trim() : '';
         
+        // Créer un timestamp artificiel décrémenté pour chaque conversation
+        // pour qu'elles apparaissent dans l'ordre chronologique
+        const baseTime = new Date();
+        baseTime.setMinutes(baseTime.getMinutes() - (conversations.length - index));
+        
         return [
           {
             id: `user-${index}`,
             sender: 'Vous',
             content: userMessage,
-            timestamp: new Date(),
+            timestamp: new Date(baseTime),
             isUser: true
           },
           {
             id: `bot-${index}`,
             sender: 'Haven',
             content: botMessage,
-            timestamp: new Date(),
+            timestamp: new Date(baseTime.getTime() + 1000), // 1 seconde plus tard
             isUser: false
           }
         ];
       }).flat();
+      
+      console.log('Messages formatés:', chatMessages.value.length);
     } else {
+      console.error('Erreur dans la réponse:', response.data);
       chatError.value = 'Impossible de récupérer l\'historique du chat';
     }
   } catch (error) {

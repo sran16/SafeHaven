@@ -3,8 +3,8 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlite"
-  url      = "file:./dev.db"
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
 }
 
 model Users {
@@ -15,7 +15,6 @@ model Users {
   registration_Date DateTime @default(now())
 
   moods             Moods[]
-  toDoLists         ToDoLists[]
   experiences       Experiences[]
   chatbotSessions   Chatbot_sessions[]
   logs              UserLogs[]
@@ -32,19 +31,6 @@ model Moods {
   description       String   
 
   @@index([dateRegistration])
-  userId            Int
-  user              Users    @relation(fields: [userId], references: [id_user], onDelete: Cascade)
-}
-
-model ToDoLists {
-  id_list           Int      @id @default(autoincrement())
-  name              String   
-  notes             String?  
-  status            Boolean
-  registrationDate  DateTime @default(now())
-  dueDate           DateTime
-
-  @@index([registrationDate])
   userId            Int
   user              Users    @relation(fields: [userId], references: [id_user], onDelete: Cascade)
 }

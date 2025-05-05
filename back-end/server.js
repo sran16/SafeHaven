@@ -19,7 +19,7 @@ const prisma = new PrismaClient();
 
 // Configuration CORS
 app.use(cors({
-  origin: ['http://localhost:5173', 'https://safe-haven-kappa.vercel.app'], // URLs du front-end
+  origin: ['http://localhost:5173', 'https://safe-haven-kappa.vercel.app', 'capacitor://localhost', 'http://localhost', 'file://', 'http://10.0.2.2:3000'], // URLs du front-end
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization']
@@ -88,6 +88,6 @@ app.use((req, res) => {
 
 // Lancer le serveur
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
+app.listen(PORT, '0.0.0.0', () => {
   console.log(`Serveur démarré sur http://localhost:${PORT}`);
 });

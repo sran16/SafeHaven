@@ -108,19 +108,9 @@ const sendMessage = async () => {
     }
 
     const apiUrl = getApiUrl();
-    console.log('URL complète pour chat session:', `${apiUrl}/api/chat/session/start`);
-
-    // Vérifier si une session de chat existe, sinon en créer une
-    try {
-      await axios.post(`${apiUrl}/api/chat/session/start`, 
-        { userId: user.id },
-        getAuthHeaders()
-      )
-    } catch (error) {
-      console.log('Session peut-être déjà existante:', error)
-      // Continue même si la session existe déjà
-    }
-
+    
+    // Envoyer le message directement
+    // Le middleware d'authentification sur le backend extraira l'identifiant utilisateur du token
     console.log('URL complète pour chat message:', `${apiUrl}/api/chat/message`);
     
     // Envoyer le message
