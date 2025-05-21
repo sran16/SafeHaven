@@ -16,18 +16,6 @@
         </div>
         <p v-else>Pas encore enregistrée</p>
       </div>
-
-      <div class="mood-stat-card">
-        <h3>Cette semaine</h3>
-        <div class="mood-chart">
-          <div class="chart-container">
-            <!-- Ici nous intégrerons un graphique de tendance -->
-            <div class="placeholder-chart">
-              Graphique hebdomadaire
-            </div>
-          </div>
-        </div>
-      </div>
     </div>
 
     <div class="mood-history">

@@ -57,9 +57,20 @@ class UserController {
 
     async getProfile(req, res) {
         try {
-            const user = await userService.getUserProfile(req.user.id);
-            return successResponse(res, 200, 'Profile retrieved successfully', user);
+            console.log('Récupération du profil pour l\'utilisateur:', req.user);
+            const user = await userService.getUserProfile(req.user.id_user);
+            
+            // Formater les données pour le frontend
+            const formattedUser = {
+                id_user: user.id_user,
+                username: user.name,
+                createdAt: user.registration_Date ? new Date(user.registration_Date).toISOString() : null,
+                posts: user.experiences?.length || 0,
+            };
+            
+            return successResponse(res, 200, 'Profile retrieved successfully', formattedUser);
         } catch (error) {
+            console.error('Erreur lors de la récupération du profil:', error);
             return errorResponse(res, 400, error.message);
         }
     }

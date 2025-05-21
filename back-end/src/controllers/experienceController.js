@@ -24,7 +24,8 @@ class ExperienceController {
     async getExperiences(req, res) {
         try {
             console.log('Début de la récupération des expériences');
-            const experiences = await experienceService.getAllExperiences();
+            const userId = req.user.id_user;
+            const experiences = await experienceService.getExperiencesByUserId(userId);
             console.log('Expériences récupérées avec succès:', experiences.length);
             return successResponse(res, 200, 'Experiences retrieved successfully', experiences);
         } catch (error) {
@@ -39,12 +40,17 @@ class ExperienceController {
 
     async getExperienceById(req, res) {
         try {
-            const experience = await experienceService.getExperienceById(req.params.id);
+            const experienceId = parseInt(req.params.id);
+            if (isNaN(experienceId)) {
+                return errorResponse(res, 400, 'ID d\'expérience invalide');
+            }
+            const experience = await experienceService.getExperienceById(experienceId);
             if (!experience) {
                 return errorResponse(res, 404, 'Experience not found');
             }
             return successResponse(res, 200, 'Experience retrieved successfully', experience);
         } catch (error) {
+            console.error('Error in getExperienceById:', error);
             return errorResponse(res, 500, error.message);
         }
     }

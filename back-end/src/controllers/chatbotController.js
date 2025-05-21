@@ -101,6 +101,7 @@ Ton objectif unique: maintenir une conversation brève et naturelle, comme par m
             const { message, userId } = req.body;
             console.log('Message reçu:', message);
             console.log('ID utilisateur:', userId);
+            console.log('MISTRAL_API_KEY:', process.env.MISTRAL_API_KEY);
 
             if (!this.MISTRAL_API_KEY) {
                 console.log('Clé API Mistral non configurée, utilisation du mode fallback');
@@ -126,9 +127,6 @@ Ton objectif unique: maintenir une conversation brève et naturelle, comme par m
                         model: "mistral-tiny",
                         messages: [
                             this.systemPrompt,
-                            { role: "user", content: 
-                                conversationHistory
-                             },
                             { role: "user", content: message }
                         ],
                         temperature: 0.7,
@@ -241,12 +239,13 @@ Ton objectif unique: maintenir une conversation brève et naturelle, comme par m
             }
 
             const conversationHistory = await chatbotService.getConversationHistory(userId);
+            const historyString = Array.isArray(conversationHistory)
+                ? conversationHistory.map(msg => msg.content).join('\n')
+                : (typeof conversationHistory === 'string' ? conversationHistory : '');
             try {
                 console.log('Tentative d\'appel à l\'API Mistral 2', [
                     this.systemPrompt,
-                    { role: "user", content: 
-                        conversationHistory
-                     },
+                    { role: "user", content: historyString },
                     { role: "user", content: message }
                 ]);
                 const mistralResponse = await axios.post(
@@ -255,9 +254,7 @@ Ton objectif unique: maintenir une conversation brève et naturelle, comme par m
                         model: "mistral-tiny",
                         messages: [
                             this.systemPrompt,
-                            { role: "user", content: 
-                                conversationHistory
-                             },
+                            { role: "user", content: historyString },
                             { role: "user", content: message }
                         ],
                         temperature: 0.7,
@@ -311,10 +308,44 @@ Ton objectif unique: maintenir une conversation brève et naturelle, comme par m
 
     async getConversationHistory(req, res) {
         try {
-            const history = await chatbotService.getConversationHistory(req.user.id);
-            return successResponse(res, 200, 'Conversation history retrieved successfully', history);
+            console.log('User object:', req.user);
+            console.log('User ID:', req.user.id_user);
+            
+            if (!req.user || !req.user.id_user) {
+                return res.status(400).json({
+                    success: false,
+                    message: 'ID utilisateur manquant'
+                });
+            }
+
+            const history = await chatbotService.getConversationHistory(req.user.id_user);
+            console.log('Historique récupéré:', JSON.stringify(history, null, 2));
+
+            // Transformer les données pour le frontend
+            const formattedHistory = history.map(session => ({
+                id: session.id_session,
+                startDate: session.startDate,
+                endDate: session.endDate,
+                messages: session.messages.map(msg => ({
+                    id_message: msg.id_message,
+                    content: msg.content,
+                    isUserMessage: msg.isUserMessage,
+                    timestamp: msg.timestamp
+                })),
+                sentiment: session.ia?.sentimentAnalysis,
+                recommendation: session.ia?.recommendation
+            }));
+
+            res.json({
+                success: true,
+                data: formattedHistory
+            });
         } catch (error) {
-            return errorResponse(res, 400, error.message);
+            console.error('Erreur lors de la récupération de l\'historique:', error);
+            res.status(500).json({
+                success: false,
+                message: 'Erreur lors de la récupération de l\'historique'
+            });
         }
     }
 

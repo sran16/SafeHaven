@@ -69,6 +69,10 @@ body {
 }
 
 #app {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 12px;
+  font-weight: normal;
   min-height: 100vh;
 }
 

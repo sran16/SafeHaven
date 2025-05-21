@@ -8,31 +8,30 @@ datasource db {
 }
 
 model Users {
-  id_user           Int      @id @default(autoincrement())
-  name              String   
-  email             String   @unique
-  password          String   
-  registration_Date DateTime @default(now())
-
-  moods             Moods[]
-  experiences       Experiences[]
-  chatbotSessions   Chatbot_sessions[]
-  logs              UserLogs[]
+  id_user           Int                @id @default(autoincrement())
+  name              String
+  email             String             @unique
+  password          String
+  registration_Date DateTime           @default(now())
   answers           Answers[]
+  chatbotSessions   Chatbot_sessions[]
+  experiences       Experiences[]
+  moods             Moods[]
+  logs              UserLogs[]
 
   @@index([email])
   @@index([registration_Date])
 }
 
 model Moods {
-  id_mood           Int      @id @default(autoincrement())
-  dateRegistration  DateTime @default(now())
-  moodType          String   
-  description       String   
+  id_mood          Int      @id @default(autoincrement())
+  dateRegistration DateTime @default(now())
+  moodType         String
+  description      String
+  userId           Int
+  user             Users    @relation(fields: [userId], references: [id_user], onDelete: Cascade)
 
   @@index([dateRegistration])
-  userId            Int
-  user              Users    @relation(fields: [userId], references: [id_user], onDelete: Cascade)
 }
 
 model Chatbot_sessions {
@@ -44,6 +43,20 @@ model Chatbot_sessions {
   user             Users    @relation(fields: [userId], references: [id_user], onDelete: Cascade)
 
   ia               IA?
+  messages         Chat_Messages[]
+}
+
+model Chat_Messages {
+  id_message       Int      @id @default(autoincrement())
+  content          String
+  isUserMessage    Boolean  // true pour message utilisateur, false pour message IA
+  timestamp        DateTime @default(now())
+
+  sessionId        Int
+  session          Chatbot_sessions @relation(fields: [sessionId], references: [id_session], onDelete: Cascade)
+
+  @@index([timestamp])
+  @@index([sessionId])
 }
 
 model IA {
@@ -51,69 +64,63 @@ model IA {
   sentimentAnalysis  String 
   recommendation     String 
   reportGenerated    String 
-  conversationHistory String 
 
   chatbotSessionId   Int    @unique
   chatbotSession     Chatbot_sessions @relation(fields: [chatbotSessionId], references: [id_session], onDelete: Cascade)
 }
 
 model Experiences {
-  id_experience    Int      @id @default(autoincrement())
-  content          String   
-  publication_date DateTime @default(now())
+  id_experience    Int              @id @default(autoincrement())
+  content          String
+  publication_date DateTime         @default(now())
+  userId           Int
+  moderateurId     Int?
+  answers          Answers[]
+  moderateur       Moderateurs?     @relation(fields: [moderateurId], references: [id_moderateur])
+  user             Users            @relation(fields: [userId], references: [id_user], onDelete: Cascade)
+  moderationLogs   ModerationLogs[]
 
   @@index([publication_date])
-  userId           Int
-  user             Users    @relation(fields: [userId], references: [id_user], onDelete: Cascade)
-
-  answers          Answers[]
-
-  moderateurId     Int?
-  moderateur       Moderateurs? @relation(fields: [moderateurId], references: [id_moderateur])
-
-  moderationLogs   ModerationLogs[]
 }
 
 model Answers {
-  id_response      Int      @id @default(autoincrement())
-  content          String   
-  publicationDate  DateTime @default(now())
+  id_response     Int         @id @default(autoincrement())
+  content         String
+  publicationDate DateTime    @default(now())
+  experienceId    Int
+  userId          Int
+  experience      Experiences @relation(fields: [experienceId], references: [id_experience], onDelete: Cascade)
+  user            Users       @relation(fields: [userId], references: [id_user], onDelete: Cascade)
 
   @@index([publicationDate])
-  experienceId     Int
-  experience       Experiences @relation(fields: [experienceId], references: [id_experience], onDelete: Cascade)
-  
-  userId           Int
-  user             Users    @relation(fields: [userId], references: [id_user], onDelete: Cascade)
 }
 
 model Moderateurs {
-  id_moderateur   Int      @id @default(autoincrement())
+  id_moderateur  Int              @id @default(autoincrement())
+  experiences    Experiences[]
+  moderationLogs ModerationLogs[]
 
   @@index([id_moderateur])
-  experiences     Experiences[]
-  moderationLogs  ModerationLogs[]
 }
 
 model UserLogs {
-  id_log           Int      @id @default(autoincrement())
-  action           String    // Exemple : "login", "update_profile"
-  timestamp        DateTime @default(now())
+  id_log    Int      @id @default(autoincrement())
+  action    String
+  timestamp DateTime @default(now())
+  userId    Int
+  user      Users    @relation(fields: [userId], references: [id_user], onDelete: Cascade)
 
   @@index([timestamp])
-  userId           Int
-  user             Users @relation(fields: [userId], references: [id_user], onDelete: Cascade)
 }
 
 model ModerationLogs {
-  id_log           Int      @id @default(autoincrement())
-  action           String    // Exemple : "delete_experience", "warn_user"
-  timestamp        DateTime @default(now())
+  id_log       Int          @id @default(autoincrement())
+  action       String
+  timestamp    DateTime     @default(now())
+  experienceId Int?
+  moderatorId  Int
+  experience   Experiences? @relation(fields: [experienceId], references: [id_experience], onDelete: Cascade)
+  moderator    Moderateurs  @relation(fields: [moderatorId], references: [id_moderateur], onDelete: Cascade)
 
   @@index([timestamp])
-  experienceId     Int?
-  experience       Experiences? @relation(fields: [experienceId], references: [id_experience], onDelete: Cascade)
-
-  moderatorId      Int
-  moderator        Moderateurs @relation(fields: [moderatorId], references: [id_moderateur], onDelete: Cascade)
 }

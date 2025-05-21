@@ -96,7 +96,7 @@ class UserService {
             select: {
                 id_user: true,
                 name: true,
-                createdAt: true,
+                registration_Date: true,
                 experiences: true,
                 moods: true
             }

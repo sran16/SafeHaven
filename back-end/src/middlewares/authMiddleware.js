@@ -8,8 +8,10 @@ const prisma = new PrismaClient();
 const authMiddleware = async (req, res, next) => {
   try {
     const authHeader = req.headers.authorization;
+    console.log('Auth header reçu:', authHeader);
     
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      console.log('Header d\'authentification invalide ou manquant');
       return res.status(401).json({
         success: false,
         message: 'Token d\'authentification manquant'
@@ -17,7 +19,7 @@ const authMiddleware = async (req, res, next) => {
     }
 
     const token = authHeader.split(' ')[1];
-    console.log('Token reçu:', token);
+    console.log('Token extrait:', token);
     
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
     console.log('Token décodé:', decoded);
@@ -34,11 +36,11 @@ const authMiddleware = async (req, res, next) => {
       });
     }
 
-    console.log('Utilisateur trouvé:', user.name);
+    console.log('Utilisateur trouvé:', user);
     req.user = user;
     next();
   } catch (error) {
-    console.error('Erreur d\'authentification:', error);
+    console.error('Erreur d\'authentification détaillée:', error);
     return res.status(401).json({
       success: false,
       message: 'Token invalide ou expiré'

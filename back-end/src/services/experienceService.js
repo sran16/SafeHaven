@@ -115,9 +115,13 @@ class ExperienceService {
 
     async getExperienceById(id) {
         try {
+            if (!id || isNaN(id)) {
+                throw new Error('ID d\'expérience invalide');
+            }
+
             const experience = await prisma.experiences.findUnique({
                 where: {
-                    id_experience: parseInt(id)
+                    id_experience: id
                 },
                 include: {
                     user: true
@@ -154,6 +158,51 @@ class ExperienceService {
             };
         } catch (error) {
             console.error('Error in getExperienceById:', error);
+            throw error;
+        }
+    }
+
+    async getExperiencesByUserId(userId) {
+        try {
+            const experiences = await prisma.experiences.findMany({
+                where: {
+                    userId: userId
+                },
+                include: {
+                    user: true,
+                    answers: {
+                        include: {
+                            user: true
+                        },
+                        orderBy: {
+                            publicationDate: 'desc'
+                        }
+                    }
+                },
+                orderBy: {
+                    publication_date: 'desc'
+                }
+            });
+
+            return experiences.map(exp => ({
+                id_experience: exp.id_experience,
+                content: exp.content,
+                publication_date: exp.publication_date,
+                user: {
+                    id_user: exp.user.id_user,
+                    name: exp.user.name
+                },
+                likes: likesCount.get(exp.id_experience) || 0,
+                isLiked: false,
+                comments: exp.answers.map(answer => ({
+                    id: answer.id_response,
+                    content: answer.content,
+                    author: answer.user.name || 'Utilisateur inconnu',
+                    createdAt: answer.publicationDate
+                }))
+            }));
+        } catch (error) {
+            console.error('Error in getExperiencesByUserId:', error);
             throw error;
         }
     }

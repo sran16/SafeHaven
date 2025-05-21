@@ -141,9 +141,63 @@ const sendMessage = async () => {
   }
 }
 
-onMounted(() => {
+onMounted(async () => {
   if (messageInput.value) {
     messageInput.value.focus()
+  }
+
+  // Vérifier s'il y a un timestamp stocké pour une redirection
+  const chatTimestamp = localStorage.getItem('chatTimestamp')
+  if (chatTimestamp) {
+    try {
+      const apiUrl = getApiUrl()
+      const response = await axios.get(`${apiUrl}/api/chat/history`, getAuthHeaders())
+      
+      if (response.data && response.data.success) {
+        const historyText = response.data.data || ''
+        if (historyText) {
+          const conversations = historyText.split('---\n').filter(conv => conv.trim() !== '')
+          
+          // Trouver la conversation correspondant au timestamp
+          const targetDate = new Date(chatTimestamp)
+          const targetConversation = conversations.find(conv => {
+            const lines = conv.trim().split('\n')
+            const dateLine = lines.find(line => line.startsWith('Date:'))
+            if (dateLine) {
+              const convDate = new Date(dateLine.replace('Date:', '').trim())
+              return Math.abs(convDate.getTime() - targetDate.getTime()) < 1000 // 1 seconde de tolérance
+            }
+            return false
+          })
+
+          if (targetConversation) {
+            const lines = targetConversation.trim().split('\n')
+            const userLine = lines.find(line => line.startsWith('User:'))
+            const botLine = lines.find(line => line.startsWith('Bot:'))
+            
+            if (userLine && botLine) {
+              messages.value = [
+                {
+                  text: userLine.replace('User:', '').trim(),
+                  sender: 'user',
+                  timestamp: targetDate
+                },
+                {
+                  text: botLine.replace('Bot:', '').trim(),
+                  sender: 'bot',
+                  timestamp: new Date(targetDate.getTime() + 1000)
+                }
+              ]
+            }
+          }
+        }
+      }
+    } catch (error) {
+      console.error('Erreur lors de la récupération de la conversation:', error)
+    } finally {
+      // Nettoyer le timestamp stocké
+      localStorage.removeItem('chatTimestamp')
+    }
   }
 })
 </script>

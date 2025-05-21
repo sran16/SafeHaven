@@ -3,19 +3,6 @@
     <div class="profile-header">
       <div class="profile-cover"></div>
       <div class="profile-info">
-        <div class="profile-avatar-container">
-          <img :src="user.avatar || '/default-avatar.png'" alt="Avatar" class="profile-avatar" />
-          <button class="edit-avatar-btn" @click="triggerFileInput">
-            <span>📷</span>
-          </button>
-          <input
-            type="file"
-            ref="fileInput"
-            @change="handleAvatarChange"
-            accept="image/*"
-            style="display: none"
-          />
-        </div>
         <div class="profile-details">
           <h1>{{ user.username }}</h1>
           <p class="member-since">Membre depuis {{ formatDate(user.createdAt) }}</p>
@@ -26,14 +13,6 @@
         <div class="stat-item">
           <span class="stat-value">{{ user.posts }}</span>
           <span class="stat-label">Posts</span>
-        </div>
-        <div class="stat-item">
-          <span class="stat-value">{{ user.followers }}</span>
-          <span class="stat-label">Abonnés</span>
-        </div>
-        <div class="stat-item">
-          <span class="stat-value">{{ user.following }}</span>
-          <span class="stat-label">Abonnements</span>
         </div>
       </div>
     </div>
@@ -64,16 +43,48 @@
       <div class="tab-content">
         <!-- Posts -->
         <div v-if="currentTab === 'posts'" class="posts-grid">
-          <div v-for="post in userPosts" :key="post.id" class="post-card">
+          <div v-if="userPosts.length === 0" class="empty-state">
+            <p>Vous n'avez pas encore de publications</p>
+            <button @click="$router.push('/create-post')" class="create-post-btn">
+              Créer une publication
+            </button>
+          </div>
+          <div v-else v-for="post in userPosts" :key="post.id_experience" class="post-card">
             <img v-if="post.image" :src="post.image" :alt="post.content" class="post-image" />
-            <div v-else class="post-content">{{ post.content }}</div>
+            <div class="post-content">
+              <p class="post-text">{{ post.content }}</p>
+              <div class="post-meta">
+                <span class="post-date">{{ formatDate(post.publication_date) }}</span>
+                <div class="post-stats">
+                  <span class="likes">❤️ {{ post.likes }}</span>
+                  <span class="comments">💬 {{ post.comments.length }}</span>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
 
         <!-- Mood Tracker -->
         <div v-else-if="currentTab === 'mood'" class="mood-tracker">
-          <div class="mood-chart">
-            <p class="placeholder-text">Graphique de suivi d'humeur à venir</p>
+          <div v-if="loadingMood" class="loading-state">
+            <div class="loading-spinner"></div>
+            <p>Chargement des données de mood...</p>
+          </div>
+          
+          <div v-else-if="moodError" class="error-state">
+            <p>{{ moodError }}</p>
+            <button @click="fetchMoodData" class="retry-btn">Réessayer</button>
+          </div>
+          
+          <div v-else-if="moodData.length === 0" class="empty-state">
+            <p>Vous n'avez pas encore enregistré de mood</p>
+            <button @click="$router.push('/mood')" class="start-tracking-btn">
+              Commencer le suivi
+            </button>
+          </div>
+          
+          <div v-else class="mood-chart">
+            <MoodChart :mood-data="moodData" />
           </div>
         </div>
 
@@ -98,13 +109,15 @@
           
           <div v-else class="chat-messages">
             <div class="chat-date-header">Historique de vos conversations</div>
-            <div v-for="message in chatMessages" :key="message.id" 
-              :class="['chat-message', message.isUser ? 'user-message' : 'bot-message']">
-              <div class="message-header">
-                <span class="message-sender">{{ message.sender }}</span>
-                <span class="message-time">{{ formatChatTime(message.timestamp) }}</span>
+            <div v-for="(group, date) in groupedChatMessages" :key="date" class="chat-date-group">
+              <div class="date-header">{{ formatDate(date) }}</div>
+              <div v-for="message in group" :key="message.id" class="chat-message-link" @click="goToChat(message.timestamp)">
+                <div class="message-preview">
+                  <span class="preview-sender">{{ message.sender }}</span>
+                  <span class="preview-content">{{ message.content }}</span>
+                  <span class="preview-time">{{ formatChatTime(message.timestamp) }}</span>
+                </div>
               </div>
-              <div class="message-content">{{ message.content }}</div>
             </div>
           </div>
         </div>
@@ -158,6 +171,8 @@
 import { ref, onMounted } from 'vue'
 import axios from 'axios'
 import { getApiUrl, getAuthHeaders } from '../utils/api'
+import { useRouter } from 'vue-router'
+import MoodChart from '../components/MoodChart.vue'
 
 const user = ref({
   username: '',
@@ -176,6 +191,11 @@ const savedPosts = ref([])
 const chatMessages = ref([])
 const loadingChat = ref(false)
 const chatError = ref(null)
+const groupedChatMessages = ref({})
+const moodData = ref([])
+const loadingMood = ref(false)
+const moodError = ref(null)
+const router = useRouter()
 
 const editForm = ref({
   username: '',
@@ -234,66 +254,86 @@ const updateProfile = async () => {
   }
 }
 
+const goToChat = (timestamp) => {
+  localStorage.setItem('chatTimestamp', timestamp)
+  router.push('/chatbot')
+}
+
 const fetchChatHistory = async () => {
   try {
     loadingChat.value = true;
     chatError.value = null;
     
     const apiUrl = getApiUrl();
-    console.log('Tentative de récupération de l\'historique du chat:', `${apiUrl}/api/chat/history`);
-    const response = await axios.get(`${apiUrl}/api/chat/history`, getAuthHeaders());
+    const headers = getAuthHeaders();
+    console.log('Headers envoyés:', headers);
+    
+    const response = await axios.get(`${apiUrl}/api/chat/history`, headers);
+    console.log('Réponse du serveur:', response.data);
     
     if (response.data && response.data.success) {
-      // Traitement de l'historique du chat qui est une chaîne de texte
-      const historyText = response.data.data || '';
-      console.log('Historique brut reçu:', historyText);
+      const sessions = response.data.data;
       
-      if (!historyText || historyText.trim() === '') {
-        console.log('Aucun historique trouvé');
+      if (!sessions || sessions.length === 0) {
         chatMessages.value = [];
-        loadingChat.value = false;
+        groupedChatMessages.value = {};
         return;
       }
       
-      // Diviser l'historique en messages individuels
-      const conversations = historyText.split('---\n').filter(conv => conv.trim() !== '');
-      console.log('Nombre de conversations trouvées:', conversations.length);
+      // Transformer les sessions en messages groupés par date
+      const grouped = {};
       
-      // Transformer chaque conversation en objets de message
-      chatMessages.value = conversations.map((conv, index) => {
-        const lines = conv.trim().split('\n');
-        const userLine = lines.find(line => line.startsWith('User:'));
-        const botLine = lines.find(line => line.startsWith('Bot:'));
-        
-        const userMessage = userLine ? userLine.replace('User:', '').trim() : '';
-        const botMessage = botLine ? botLine.replace('Bot:', '').trim() : '';
-        
-        // Créer un timestamp artificiel décrémenté pour chaque conversation
-        // pour qu'elles apparaissent dans l'ordre chronologique
-        const baseTime = new Date();
-        baseTime.setMinutes(baseTime.getMinutes() - (conversations.length - index));
-        
-        return [
-          {
-            id: `user-${index}`,
-            sender: 'Vous',
-            content: userMessage,
-            timestamp: new Date(baseTime),
-            isUser: true
-          },
-          {
-            id: `bot-${index}`,
-            sender: 'Haven',
-            content: botMessage,
-            timestamp: new Date(baseTime.getTime() + 1000), // 1 seconde plus tard
-            isUser: false
+      sessions.forEach(session => {
+        try {
+          // Vérifier si la date est valide
+          const sessionDate = new Date(session.startDate);
+          if (isNaN(sessionDate.getTime())) {
+            console.warn('Date de session invalide:', session.startDate);
+            return;
           }
-        ];
-      }).flat();
+          
+          const date = sessionDate.toISOString().split('T')[0];
+          
+          if (!grouped[date]) {
+            grouped[date] = [];
+          }
+          
+          // Ajouter les messages de la session
+          session.messages.forEach(msg => {
+            try {
+              // Vérifier si la date du message est valide
+              const messageDate = new Date(msg.timestamp);
+              if (isNaN(messageDate.getTime())) {
+                console.warn('Date de message invalide:', msg.timestamp);
+                return;
+              }
+              
+              grouped[date].push({
+                id: msg.id_message,
+                sender: msg.isUserMessage ? 'Vous' : 'Haven',
+                content: msg.content,
+                timestamp: messageDate,
+                isUser: msg.isUserMessage
+              });
+            } catch (error) {
+              console.warn('Erreur lors du traitement du message:', error);
+            }
+          });
+        } catch (error) {
+          console.warn('Erreur lors du traitement de la session:', error);
+        }
+      });
       
-      console.log('Messages formatés:', chatMessages.value.length);
+      // Trier les dates (du plus récent au plus ancien)
+      const sortedDates = Object.keys(grouped).sort((a, b) => new Date(b) - new Date(a));
+      const sortedGrouped = {};
+      sortedDates.forEach(date => {
+        sortedGrouped[date] = grouped[date].sort((a, b) => a.timestamp - b.timestamp);
+      });
+      
+      groupedChatMessages.value = sortedGrouped;
+      chatMessages.value = Object.values(grouped).flat();
     } else {
-      console.error('Erreur dans la réponse:', response.data);
       chatError.value = 'Impossible de récupérer l\'historique du chat';
     }
   } catch (error) {
@@ -304,10 +344,38 @@ const fetchChatHistory = async () => {
   }
 };
 
-// Charger l'historique du chat lorsque l'onglet est sélectionné
+const fetchUserPosts = async () => {
+  try {
+    const apiUrl = getApiUrl();
+    const response = await axios.get(`${apiUrl}/api/experiences`, getAuthHeaders());
+    userPosts.value = response.data.data || [];
+  } catch (error) {
+    console.error('Erreur lors du chargement des publications:', error);
+  }
+}
+
+const fetchMoodData = async () => {
+  try {
+    loadingMood.value = true;
+    const apiUrl = getApiUrl();
+    const response = await axios.get(`${apiUrl}/api/moods`, getAuthHeaders());
+    moodData.value = response.data.data || [];
+  } catch (error) {
+    console.error('Erreur lors du chargement des données de mood:', error);
+    moodError.value = 'Impossible de charger les données de mood';
+  } finally {
+    loadingMood.value = false;
+  }
+}
+
+// Charger les données lorsque l'onglet change
 const handleTabChange = (tabId) => {
   currentTab.value = tabId;
-  if (tabId === 'chat') {
+  if (tabId === 'posts') {
+    fetchUserPosts();
+  } else if (tabId === 'mood') {
+    fetchMoodData();
+  } else if (tabId === 'chat') {
     fetchChatHistory();
   }
 };
@@ -323,7 +391,7 @@ const fetchUserData = async () => {
     const response = await axios.get(`${apiUrl}/api/users/profile`, authHeaders);
     
     console.log('Réponse du profil utilisateur:', response.data);
-    user.value = response.data;
+    user.value = response.data.data;
     editForm.value.username = response.data.username || response.data.name;
     editForm.value.bio = response.data.bio || '';
   } catch (error) {
@@ -347,10 +415,20 @@ const formatChatTime = (date) => {
   });
 };
 
+// Générer une URL d'avatar aléatoire basé sur le nom (ex: DiceBear)
+const getRandomAvatar = (name) => {
+  // Utilisation de DiceBear Avatars (par exemple style 'initials')
+  return `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(name)}`;
+};
+
 onMounted(() => {
   fetchUserData()
-  // Charger l'historique du chat si c'est l'onglet actif au chargement
-  if (currentTab.value === 'chat') {
+  // Charger les données initiales en fonction de l'onglet actif
+  if (currentTab.value === 'posts') {
+    fetchUserPosts();
+  } else if (currentTab.value === 'mood') {
+    fetchMoodData();
+  } else if (currentTab.value === 'chat') {
     fetchChatHistory();
   }
 })
@@ -377,7 +455,6 @@ onMounted(() => {
 
 .profile-info {
   padding: var(--spacing-md);
-  margin-top: -50px;
   text-align: center;
 }
 
@@ -526,19 +603,17 @@ onMounted(() => {
   padding: var(--spacing-md);
 }
 
-.posts-grid {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: var(--spacing-sm);
-}
 
 .post-card {
-  aspect-ratio: 1;
-  border-radius: var(--border-radius-md);
-  overflow: hidden;
+  min-height: 120px;
   background: white;
+  border-radius: var(--border-radius-md);
+  overflow: visible;
   box-shadow: var(--shadow-soft);
   transition: var(--transition-fast);
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
 }
 
 .post-card:hover {
@@ -553,13 +628,21 @@ onMounted(() => {
 }
 
 .post-content {
-  padding: var(--spacing-sm);
-  font-size: 0.9rem;
+  padding: var(--spacing-md);
+  font-size: 1rem;
   color: var(--text-primary);
-  display: -webkit-box;
-  -webkit-line-clamp: 4;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
+  display: block;
+  overflow: visible;
+  min-height: 40px;
+}
+
+.post-text {
+  color: var(--text-primary);
+  font-size: 1rem;
+  white-space: normal;
+  overflow: visible;
+  word-break: break-word;
+  margin-bottom: var(--spacing-sm);
 }
 
 .saved-posts {
@@ -783,44 +866,119 @@ onMounted(() => {
   gap: var(--spacing-md);
 }
 
-.chat-message {
-  padding: var(--spacing-md);
-  border-radius: var(--border-radius-md);
-  max-width: 80%;
+.chat-date-group {
+  margin-bottom: var(--spacing-md);
 }
 
-.user-message {
-  align-self: flex-end;
-  background-color: #e3f2fd;
-  border-top-right-radius: 0;
-}
-
-.bot-message {
-  align-self: flex-start;
+.date-header {
+  font-weight: 600;
+  color: var(--text-secondary);
+  padding: var(--spacing-sm);
   background-color: #f5f5f5;
-  border-top-left-radius: 0;
-}
-
-.message-header {
-  display: flex;
-  justify-content: space-between;
+  border-radius: var(--border-radius-sm);
   margin-bottom: var(--spacing-xs);
-  font-size: 0.8rem;
 }
 
-.message-sender {
+.chat-message-link {
+  cursor: pointer;
+  padding: var(--spacing-sm);
+  border-radius: var(--border-radius-sm);
+  background-color: white;
+  margin-bottom: var(--spacing-xs);
+  transition: background-color 0.2s;
+}
+
+.chat-message-link:hover {
+  background-color: #f0f0f0;
+}
+
+.message-preview {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xs);
+}
+
+.preview-sender {
   font-weight: 600;
   color: var(--text-primary);
 }
 
-.message-time {
+.preview-content {
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.preview-time {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  align-self: flex-end;
+}
+
+.empty-state {
+  text-align: center;
+  padding: var(--spacing-lg);
   color: var(--text-secondary);
 }
 
-.message-content {
-  font-size: 0.95rem;
-  line-height: 1.4;
-  color: var(--text-primary);
-  white-space: pre-wrap;
+.create-post-btn,
+.start-tracking-btn {
+  margin-top: var(--spacing-md);
+  padding: var(--spacing-sm) var(--spacing-md);
+  background-color: var(--primary-color);
+  color: white;
+  border: none;
+  border-radius: var(--border-radius-sm);
+  cursor: pointer;
+  transition: var(--transition-fast);
+}
+
+.create-post-btn:hover,
+.start-tracking-btn:hover {
+  background-color: var(--primary-color-dark);
+}
+
+.post-meta {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+}
+
+.post-stats {
+  display: flex;
+  gap: var(--spacing-sm);
+}
+
+.loading-state,
+.error-state {
+  text-align: center;
+  padding: var(--spacing-lg);
+}
+
+.loading-spinner {
+  border: 3px solid var(--background-soft);
+  border-top: 3px solid var(--primary-color);
+  border-radius: 50%;
+  width: 40px;
+  height: 40px;
+  animation: spin 1s linear infinite;
+  margin: 0 auto var(--spacing-md);
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.mood-chart {
+  background: white;
+  padding: var(--spacing-md);
+  border-radius: var(--border-radius-md);
+  box-shadow: var(--shadow-soft);
+  height: 400px;
 }
 </style> 
