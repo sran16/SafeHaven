@@ -10,6 +10,7 @@ router.use(authMiddleware);
 // Routes principales
 router.post('/', experienceController.createExperience);
 router.get('/', experienceController.getExperiences);
+router.get('/user', experienceController.getUserExperiences);
 router.get('/:id', experienceController.getExperienceById);
 
 // Routes pour les likes et commentaires

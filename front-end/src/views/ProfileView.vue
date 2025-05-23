@@ -347,10 +347,21 @@ const fetchChatHistory = async () => {
 const fetchUserPosts = async () => {
   try {
     const apiUrl = getApiUrl();
-    const response = await axios.get(`${apiUrl}/api/experiences`, getAuthHeaders());
-    userPosts.value = response.data.data || [];
+    const response = await axios.get(`${apiUrl}/api/experiences/user`, getAuthHeaders());
+    
+    if (response.data.success) {
+      userPosts.value = response.data.data.map(post => ({
+        ...post,
+        showComments: false,
+        newComment: '',
+        comments: post.comments || []
+      }));
+    }
   } catch (error) {
-    console.error('Erreur lors du chargement des publications:', error);
+    console.error('Erreur lors du chargement des posts:', error);
+    if (error.response?.status === 401) {
+      router.push('/login');
+    }
   }
 }
 
@@ -421,17 +432,26 @@ const getRandomAvatar = (name) => {
   return `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(name)}`;
 };
 
-onMounted(() => {
-  fetchUserData()
-  // Charger les données initiales en fonction de l'onglet actif
-  if (currentTab.value === 'posts') {
-    fetchUserPosts();
-  } else if (currentTab.value === 'mood') {
-    fetchMoodData();
-  } else if (currentTab.value === 'chat') {
-    fetchChatHistory();
+onMounted(async () => {
+  try {
+    const apiUrl = getApiUrl();
+    const [profileResponse] = await Promise.all([
+      axios.get(`${apiUrl}/api/users/profile`, getAuthHeaders())
+    ]);
+
+    if (profileResponse.data.success) {
+      user.value = profileResponse.data.data;
+      editForm.value.username = user.value.username;
+    }
+
+    await fetchUserPosts();
+  } catch (error) {
+    console.error('Erreur lors du chargement du profil:', error);
+    if (error.response?.status === 401) {
+      router.push('/login');
+    }
   }
-})
+});
 </script>
 
 <style scoped>

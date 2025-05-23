@@ -24,12 +24,28 @@ class ExperienceController {
     async getExperiences(req, res) {
         try {
             console.log('Début de la récupération des expériences');
-            const userId = req.user.id_user;
-            const experiences = await experienceService.getExperiencesByUserId(userId);
+            const experiences = await experienceService.getAllExperiences();
             console.log('Expériences récupérées avec succès:', experiences.length);
             return successResponse(res, 200, 'Experiences retrieved successfully', experiences);
         } catch (error) {
             console.error('Erreur détaillée dans getExperiences:', {
+                message: error.message,
+                stack: error.stack,
+                name: error.name
+            });
+            return errorResponse(res, 500, `Erreur serveur: ${error.message}`);
+        }
+    }
+
+    async getUserExperiences(req, res) {
+        try {
+            console.log('Début de la récupération des expériences de l\'utilisateur');
+            const userId = req.user.id_user;
+            const experiences = await experienceService.getExperiencesByUserId(userId);
+            console.log('Expériences de l\'utilisateur récupérées avec succès:', experiences.length);
+            return successResponse(res, 200, 'User experiences retrieved successfully', experiences);
+        } catch (error) {
+            console.error('Erreur détaillée dans getUserExperiences:', {
                 message: error.message,
                 stack: error.stack,
                 name: error.name
