@@ -308,44 +308,56 @@ Ton objectif unique: maintenir une conversation brève et naturelle, comme par m
 
     async getConversationHistory(req, res) {
         try {
-            console.log('User object:', req.user);
-            console.log('User ID:', req.user.id_user);
+            const userId = req.user.id_user;
+            console.log('Récupération de l\'historique pour l\'utilisateur:', userId);
             
-            if (!req.user || !req.user.id_user) {
-                return res.status(400).json({
-                    success: false,
-                    message: 'ID utilisateur manquant'
-                });
-            }
-
-            const history = await chatbotService.getConversationHistory(req.user.id_user);
-            console.log('Historique récupéré:', JSON.stringify(history, null, 2));
-
-            // Transformer les données pour le frontend
-            const formattedHistory = history.map(session => ({
-                id: session.id_session,
-                startDate: session.startDate,
-                endDate: session.endDate,
-                messages: session.messages.map(msg => ({
-                    id_message: msg.id_message,
-                    content: msg.content,
-                    isUserMessage: msg.isUserMessage,
-                    timestamp: msg.timestamp
-                })),
-                sentiment: session.ia?.sentimentAnalysis,
-                recommendation: session.ia?.recommendation
-            }));
-
-            res.json({
-                success: true,
-                data: formattedHistory
+            const sessions = await chatbotService.getConversationHistory(userId);
+            
+            // Transformer les sessions pour le format attendu par le frontend
+            const formattedSessions = sessions.map(session => {
+                // Trouver le premier message de l'utilisateur
+                const firstUserMessage = session.messages.find(msg => msg.isUserMessage);
+                
+                // S'assurer que la date est valide
+                const sessionDate = session.startDate ? new Date(session.startDate) : new Date();
+                
+                // Formater la date pour le groupement
+                const formattedDate = sessionDate.toISOString().split('T')[0];
+                
+                return {
+                    id: session.id_session,
+                    date: formattedDate,
+                    preview: firstUserMessage ? firstUserMessage.content.substring(0, 50) + (firstUserMessage.content.length > 50 ? '...' : '') : 'Nouvelle conversation',
+                    messages: session.messages.map(msg => ({
+                        id: msg.id_message,
+                        content: msg.content,
+                        isUserMessage: msg.isUserMessage,
+                        timestamp: msg.timestamp ? new Date(msg.timestamp).toISOString() : new Date().toISOString()
+                    }))
+                };
             });
+            
+            // Grouper les sessions par date
+            const groupedSessions = formattedSessions.reduce((acc, session) => {
+                if (!acc[session.date]) {
+                    acc[session.date] = [];
+                }
+                acc[session.date].push(session);
+                return acc;
+            }, {});
+            
+            // Convertir en tableau et trier par date (du plus récent au plus ancien)
+            const sortedSessions = Object.entries(groupedSessions)
+                .sort(([dateA], [dateB]) => new Date(dateB) - new Date(dateA))
+                .map(([date, sessions]) => ({
+                    date,
+                    sessions
+                }));
+            
+            return successResponse(res, 200, 'Historique récupéré avec succès', sortedSessions);
         } catch (error) {
             console.error('Erreur lors de la récupération de l\'historique:', error);
-            res.status(500).json({
-                success: false,
-                message: 'Erreur lors de la récupération de l\'historique'
-            });
+            return errorResponse(res, 500, 'Erreur lors de la récupération de l\'historique');
         }
     }
 

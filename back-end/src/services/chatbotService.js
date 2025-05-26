@@ -2,12 +2,20 @@ import { PrismaClient } from '@prisma/client';
 const prisma = new PrismaClient();
 
 class ChatbotService {
-    // Récupère la session active d'un utilisateur
+    // Récupère la session active du jour pour un utilisateur
     async getActiveSession(userId) {
+        const today = new Date();
+        today.setHours(0, 0, 0, 0); // début de la journée
+        const tomorrow = new Date(today);
+        tomorrow.setDate(today.getDate() + 1);
+
         return await prisma.chatbot_sessions.findFirst({
             where: {
                 userId: userId,
-                endDate: null
+                startDate: {
+                    gte: today,
+                    lt: tomorrow
+                }
             },
             include: {
                 ia: true
@@ -34,13 +42,8 @@ class ChatbotService {
     // Sauvegarde chaque message dans l'historique
     async saveConversation(userId, userMessage, aiResponse) {
         try {
-            // Récupérer ou créer une session active
-            let session = await prisma.chatbot_sessions.findFirst({
-                where: {
-                    userId: userId,
-                    endDate: null
-                }
-            });
+            // Récupérer ou créer la session du jour
+            let session = await this.getActiveSession(userId);
 
             if (!session) {
                 session = await this.createSession(userId);
@@ -94,20 +97,7 @@ class ChatbotService {
                 }
             });
             
-            console.log('Sessions trouvées:', JSON.stringify(sessions, null, 2));
-            
-            // Si aucune session n'existe, créer une session de test
-            if (sessions.length === 0) {
-                console.log('Aucune session trouvée, création d\'une session de test');
-                const testSession = await this.createSession(userId);
-                const testMessage = await this.saveConversation(
-                    userId,
-                    "Message de test",
-                    "Réponse de test"
-                );
-                return [testSession];
-            }
-            
+            console.log('Sessions trouvées:', sessions.length);
             return sessions;
         } catch (error) {
             console.error('Erreur détaillée lors de la récupération de l\'historique:', error);

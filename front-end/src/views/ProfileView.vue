@@ -107,16 +107,33 @@
             </button>
           </div>
           
-          <div v-else class="chat-messages">
-            <div class="chat-date-header">Historique de vos conversations</div>
-            <div v-for="(group, date) in groupedChatMessages" :key="date" class="chat-date-group">
-              <div class="date-header">{{ formatDate(date) }}</div>
-              <div v-for="message in group" :key="message.id" class="chat-message-link" @click="goToChat(message.timestamp)">
-                <div class="message-preview">
-                  <span class="preview-sender">{{ message.sender }}</span>
-                  <span class="preview-content">{{ message.content }}</span>
-                  <span class="preview-time">{{ formatChatTime(message.timestamp) }}</span>
+          <div v-else class="chat-sessions">
+            <div class="sessions-list">
+              <div v-for="group in chatMessages" :key="group.date" class="date-group">
+                <div class="date-header">{{ formatDate(group.date) }}</div>
+                <div v-for="session in group.sessions" :key="session.id" 
+                     :class="['session-item', { active: selectedSession?.id === session.id }]"
+                     @click="selectSession(session)">
+                  <div class="session-preview">
+                    <div class="session-message">{{ session.preview }}</div>
+                  </div>
                 </div>
+              </div>
+            </div>
+
+            <div v-if="selectedSession" class="session-details">
+              <div class="session-header">
+                <h3>Conversation du {{ formatDate(selectedSession.date) }}</h3>
+                <button @click="selectedSession = null" class="close-session-btn">×</button>
+              </div>
+              <div class="messages-container">
+                <template v-if="selectedSession">
+                  <div v-for="message in selectedSession.messages" :key="message.id"
+                       :class="['message', message.isUserMessage ? 'user-message' : 'bot-message']">
+                    <div class="message-content">{{ message.content }}</div>
+                    <div class="message-time">{{ formatChatTime(message.timestamp) }}</div>
+                  </div>
+                </template>
               </div>
             </div>
           </div>
@@ -208,12 +225,22 @@ const tabs = [
   { id: 'chat', name: 'Historique du chat' },
 ]
 
-const formatDate = (date) => {
-  return new Date(date).toLocaleDateString('fr-FR', {
-    day: 'numeric',
-    month: 'long',
-    year: 'numeric'
-  })
+const formatDate = (dateString) => {
+  try {
+    const date = new Date(dateString);
+    if (isNaN(date.getTime())) {
+      console.warn('Date invalide:', dateString);
+      return 'Date inconnue';
+    }
+    return date.toLocaleDateString('fr-FR', {
+      day: 'numeric',
+      month: 'long',
+      year: 'numeric'
+    });
+  } catch (error) {
+    console.error('Erreur lors du formatage de la date:', error);
+    return 'Date inconnue';
+  }
 }
 
 const triggerFileInput = () => {
@@ -265,74 +292,10 @@ const fetchChatHistory = async () => {
     chatError.value = null;
     
     const apiUrl = getApiUrl();
-    const headers = getAuthHeaders();
-    console.log('Headers envoyés:', headers);
-    
-    const response = await axios.get(`${apiUrl}/api/chat/history`, headers);
-    console.log('Réponse du serveur:', response.data);
+    const response = await axios.get(`${apiUrl}/api/chat/history`, getAuthHeaders());
     
     if (response.data && response.data.success) {
-      const sessions = response.data.data;
-      
-      if (!sessions || sessions.length === 0) {
-        chatMessages.value = [];
-        groupedChatMessages.value = {};
-        return;
-      }
-      
-      // Transformer les sessions en messages groupés par date
-      const grouped = {};
-      
-      sessions.forEach(session => {
-        try {
-          // Vérifier si la date est valide
-          const sessionDate = new Date(session.startDate);
-          if (isNaN(sessionDate.getTime())) {
-            console.warn('Date de session invalide:', session.startDate);
-            return;
-          }
-          
-          const date = sessionDate.toISOString().split('T')[0];
-          
-          if (!grouped[date]) {
-            grouped[date] = [];
-          }
-          
-          // Ajouter les messages de la session
-          session.messages.forEach(msg => {
-            try {
-              // Vérifier si la date du message est valide
-              const messageDate = new Date(msg.timestamp);
-              if (isNaN(messageDate.getTime())) {
-                console.warn('Date de message invalide:', msg.timestamp);
-                return;
-              }
-              
-              grouped[date].push({
-                id: msg.id_message,
-                sender: msg.isUserMessage ? 'Vous' : 'Haven',
-                content: msg.content,
-                timestamp: messageDate,
-                isUser: msg.isUserMessage
-              });
-            } catch (error) {
-              console.warn('Erreur lors du traitement du message:', error);
-            }
-          });
-        } catch (error) {
-          console.warn('Erreur lors du traitement de la session:', error);
-        }
-      });
-      
-      // Trier les dates (du plus récent au plus ancien)
-      const sortedDates = Object.keys(grouped).sort((a, b) => new Date(b) - new Date(a));
-      const sortedGrouped = {};
-      sortedDates.forEach(date => {
-        sortedGrouped[date] = grouped[date].sort((a, b) => a.timestamp - b.timestamp);
-      });
-      
-      groupedChatMessages.value = sortedGrouped;
-      chatMessages.value = Object.values(grouped).flat();
+      chatMessages.value = response.data.data;
     } else {
       chatError.value = 'Impossible de récupérer l\'historique du chat';
     }
@@ -417,19 +380,35 @@ const fetchUserData = async () => {
   }
 }
 
-const formatChatTime = (date) => {
-  return new Date(date).toLocaleString('fr-FR', {
-    day: 'numeric',
-    month: 'short',
-    hour: '2-digit',
-    minute: '2-digit'
-  });
-};
+const formatChatTime = (dateString) => {
+  try {
+    const date = new Date(dateString);
+    if (isNaN(date.getTime())) {
+      console.warn('Date invalide:', dateString);
+      return '';
+    }
+    return date.toLocaleString('fr-FR', {
+      day: 'numeric',
+      month: 'short',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+  } catch (error) {
+    console.error('Erreur lors du formatage de l\'heure:', error);
+    return '';
+  }
+}
 
 // Générer une URL d'avatar aléatoire basé sur le nom (ex: DiceBear)
 const getRandomAvatar = (name) => {
   // Utilisation de DiceBear Avatars (par exemple style 'initials')
   return `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(name)}`;
+};
+
+const selectedSession = ref(null);
+
+const selectSession = (session) => {
+  selectedSession.value = session;
 };
 
 onMounted(async () => {
@@ -871,70 +850,151 @@ onMounted(async () => {
   cursor: pointer;
 }
 
-.chat-date-header {
-  text-align: center;
-  padding: var(--spacing-sm);
-  margin: var(--spacing-md) 0;
-  font-weight: 500;
-  color: var(--text-secondary);
-  border-bottom: 1px solid var(--secondary-color);
-}
-
-.chat-messages {
+.chat-sessions {
   display: flex;
-  flex-direction: column;
   gap: var(--spacing-md);
+  height: 600px;
 }
 
-.chat-date-group {
+.sessions-list {
+  width: 300px;
+  background: white;
+  border-radius: var(--border-radius-md);
+  overflow-y: auto;
+  box-shadow: var(--shadow-soft);
+}
+
+.date-group {
   margin-bottom: var(--spacing-md);
 }
 
 .date-header {
-  font-weight: 600;
+  padding: var(--spacing-sm) var(--spacing-md);
+  background-color: var(--background-soft);
   color: var(--text-secondary);
-  padding: var(--spacing-sm);
-  background-color: #f5f5f5;
-  border-radius: var(--border-radius-sm);
-  margin-bottom: var(--spacing-xs);
+  font-size: 0.9rem;
+  font-weight: 500;
+  border-bottom: 1px solid var(--secondary-color);
 }
 
-.chat-message-link {
+.session-item {
+  padding: var(--spacing-md);
+  border-bottom: 1px solid var(--secondary-color);
   cursor: pointer;
-  padding: var(--spacing-sm);
-  border-radius: var(--border-radius-sm);
-  background-color: white;
-  margin-bottom: var(--spacing-xs);
-  transition: background-color 0.2s;
+  transition: var(--transition-fast);
 }
 
-.chat-message-link:hover {
-  background-color: #f0f0f0;
+.session-item:last-child {
+  border-bottom: none;
 }
 
-.message-preview {
+.session-preview {
   display: flex;
   flex-direction: column;
   gap: var(--spacing-xs);
 }
 
-.preview-sender {
-  font-weight: 600;
-  color: var(--text-primary);
-}
-
-.preview-content {
-  color: var(--text-secondary);
+.session-message {
   font-size: 0.9rem;
+  color: var(--text-secondary);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
-.preview-time {
-  font-size: 0.8rem;
+.session-item.active .session-message {
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.session-details {
+  flex: 1;
+  background: white;
+  border-radius: var(--border-radius-md);
+  display: flex;
+  flex-direction: column;
+  box-shadow: var(--shadow-soft);
+}
+
+.session-header {
+  padding: var(--spacing-md);
+  border-bottom: 1px solid var(--secondary-color);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.session-header h3 {
+  margin: 0;
+  font-size: 1.1rem;
+  color: var(--text-primary);
+}
+
+.close-session-btn {
+  background: none;
+  border: none;
+  font-size: 1.5rem;
   color: var(--text-secondary);
+  cursor: pointer;
+  padding: var(--spacing-xs);
+  transition: var(--transition-fast);
+}
+
+.close-session-btn:hover {
+  color: var(--text-primary);
+}
+
+.messages-container {
+  flex: 1;
+  overflow-y: auto;
+  padding: var(--spacing-md);
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md);
+}
+
+.message {
+  max-width: 80%;
+  padding: var(--spacing-md);
+  border-radius: var(--border-radius-md);
+  position: relative;
+}
+
+.user-message {
   align-self: flex-end;
+  background-color: var(--primary-color);
+  color: white;
+}
+
+.bot-message {
+  align-self: flex-start;
+  background-color: var(--background-soft);
+  color: var(--text-primary);
+}
+
+.message-content {
+  margin-bottom: var(--spacing-xs);
+}
+
+.message-time {
+  font-size: 0.8rem;
+  opacity: 0.7;
+  text-align: right;
+}
+
+@media (max-width: 768px) {
+  .chat-sessions {
+    flex-direction: column;
+    height: auto;
+  }
+
+  .sessions-list {
+    width: 100%;
+    max-height: 300px;
+  }
+
+  .session-details {
+    height: 400px;
+  }
 }
 
 .empty-state {
