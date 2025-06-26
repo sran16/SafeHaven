@@ -19,7 +19,7 @@ const prisma = new PrismaClient();
 
 // Configuration CORS
 app.use(cors({
-  origin: ['http://localhost:5173', 'https://safe-haven-kappa.vercel.app', 'capacitor://localhost', 'http://localhost', 'file://', 'http://10.0.2.2:3000'], // URLs du front-end
+  origin: ['http://localhost:5173', 'https://safe-haven-kappa.vercel.app', 'capacitor://localhost', 'http://localhost', 'file://', 'http://10.0.2.2:3000'], 
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization']
@@ -77,7 +77,7 @@ app.use((err, req, res, next) => {
   });
 });
 
-// Gestion des routes non trouvées - DOIT ÊTRE LE DERNIER MIDDLEWARE
+// Gestion des routes non trouvées 
 app.use((req, res) => {
   console.log('Route non trouvée:', req.method, req.url);
   res.status(404).json({

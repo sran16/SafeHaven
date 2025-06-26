@@ -9,8 +9,8 @@ class AnswerService {
             const answer = await prisma.answers.create({
                 data: {
                     content: data.content,
-                    userId: data.userId,        // Utilisation directe de userId
-                    experienceId: data.experienceId  // Utilisation directe de experienceId
+                    userId: data.userId,        
+                    experienceId: data.experienceId  
                 }
             });
 
