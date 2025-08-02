@@ -1,0 +1,8 @@
+{
+  "appId": "com.safehaven.app",
+  "appName": "SafeHaven",
+  "webDir": "dist",
+  "server": {
+    "androidScheme": "https"
+  }
+}

@@ -1,10 +1,9 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import HomeView from '../views/HomeView.vue'
-import LoginView from '../views/LoginView.vue'
-import PostView from '../views/PostView.vue'
+import LoginView from '../views/AuthView.vue'
 import ChatbotView from '../views/ChatbotView.vue'
 import ProfileView from '../views/ProfileView.vue'
-import MoodTrackerView from '../views/MoodTrackerView.vue'
+import MoodTrackerView from '../views/MoodtrackerView.vue'
 import SplashView from '../views/SplashView.vue'
 
 const router = createRouter({
@@ -26,12 +25,6 @@ const router = createRouter({
       path: '/home',
       name: 'home',
       component: HomeView,
-      meta: { requiresAuth: true }
-    },
-    {
-      path: '/post',
-      name: 'post',
-      component: PostView,
       meta: { requiresAuth: true }
     },
     {
