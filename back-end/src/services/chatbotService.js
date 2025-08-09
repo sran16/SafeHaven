@@ -104,6 +104,79 @@ class ChatbotService {
             throw error;
         }
     }
+
+    // Sauvegarde un rapport de session
+    async saveSessionReport(sessionId, reportData) {
+        try {
+            return await prisma.session_Reports.create({
+                data: {
+                    sessionId: sessionId,
+                    distressLevel: reportData.distressLevel,
+                    emergency: reportData.emergency,
+                    sentiment: reportData.sentiment,
+                    topics: reportData.topics,
+                    language: reportData.language,
+                    immediateRecommendations: reportData.immediateRecommendations,
+                    longTermRecommendations: reportData.longTermRecommendations,
+                    followUpNeeded: reportData.followUpNeeded,
+                    followUpUrgency: reportData.followUpUrgency,
+                    suggestedTiming: reportData.suggestedTiming,
+                    professionalNotes: reportData.professionalNotes
+                }
+            });
+        } catch (error) {
+            console.error('Erreur lors de la sauvegarde du rapport:', error);
+            throw error;
+        }
+    }
+
+    // Récupère tous les rapports d'un utilisateur
+    async getUserReports(userId) {
+        try {
+            return await prisma.session_Reports.findMany({
+                where: {
+                    session: {
+                        userId: userId
+                    }
+                },
+                include: {
+                    session: {
+                        include: {
+                            messages: true
+                        }
+                    }
+                },
+                orderBy: {
+                    createdAt: 'desc'
+                }
+            });
+        } catch (error) {
+            console.error('Erreur lors de la récupération des rapports:', error);
+            throw error;
+        }
+    }
+
+    // Récupère un rapport spécifique
+    async getReportById(reportId) {
+        try {
+            return await prisma.session_Reports.findUnique({
+                where: {
+                    id_report: reportId
+                },
+                include: {
+                    session: {
+                        include: {
+                            messages: true,
+                            user: true
+                        }
+                    }
+                }
+            });
+        } catch (error) {
+            console.error('Erreur lors de la récupération du rapport:', error);
+            throw error;
+        }
+    }
 }
 
 export default new ChatbotService(); 

@@ -40,23 +40,30 @@ class ChatbotController {
 
         this.systemPrompt = {
             role: "system",
-            content: `Tu es Haven, un assistant IA très concis spécialisé en bien-être mental.
+            content: `You are Haven, a very concise AI assistant specialized in mental well-being. Always respond in the same language as the user's message.
 
-RÈGLES STRICTES (à suivre pour CHAQUE réponse):
-- Limite-toi à 1-2 phrases maximum, jamais plus
-- Utilise un ton conversationnel, comme dans un chat entre amis
-- Formule principalement des questions courtes et directes
-- Ne donne JAMAIS d'explications longues ou théoriques
-- Ne développe JAMAIS plusieurs points dans une même réponse
-- Évite les formulations complexes ou trop professionnelles
+STRICT RULES (to follow for EVERY response):
+- Limit yourself to 1-2 sentences maximum, never more
+- Use a conversational tone, like in a chat between friends
+- Formulate mainly short and direct questions
+- NEVER give long or theoretical explanations
+- NEVER develop multiple points in the same response
+- Avoid complex or overly professional formulations
+- ALWAYS respond in the same language as the user's message (French, English, etc.)
 
-Exemples parfaits:
-- "Comment vous sentez-vous aujourd'hui exactement?"
-- "Qu'est-ce qui vous préoccupe le plus en ce moment?"
-- "Avez-vous essayé la respiration profonde? Ça aide souvent."
-- "Je comprends. Qu'est-ce qui pourrait vous faire du bien maintenant?"
+Perfect examples in French:
+- "Comment te sens-tu exactement aujourd'hui ?"
+- "Qu'est-ce qui t'inquiète le plus en ce moment ?"
+- "As-tu essayé la respiration profonde ? Ça aide souvent."
+- "Je comprends. Qu'est-ce qui pourrait te faire te sentir mieux maintenant ?"
 
-Ton objectif unique: maintenir une conversation brève et naturelle, comme par message texte.`
+Perfect examples in English:
+- "How are you feeling today exactly?"
+- "What worries you most right now?"
+- "Have you tried deep breathing? It often helps."
+- "I understand. What could make you feel better now?"
+
+Your unique goal: maintain a brief and natural conversation, like through text messages, in the user's language.`
         };
 
         // Bind des méthodes pour préserver le contexte
@@ -96,6 +103,109 @@ Ton objectif unique: maintenir une conversation brève et naturelle, comme par m
         return exercises[Math.floor(Math.random() * exercises.length)];
     }
 
+    // Détecte la langue de la conversation
+    detectConversationLanguage(currentMessage, conversationHistory) {
+        // Mots français courants pour détecter le français
+        const frenchWords = ['bonjour', 'salut', 'merci', 'oui', 'non', 'comment', 'pourquoi', 'quand', 'où', 'qui', 'quoi', 'comment', 'ça', 'je', 'tu', 'il', 'elle', 'nous', 'vous', 'ils', 'elles', 'être', 'avoir', 'faire', 'aller', 'venir', 'voir', 'savoir', 'pouvoir', 'vouloir', 'devoir', 'prendre', 'donner', 'dire', 'parler', 'écouter', 'regarder', 'penser', 'sentir', 'aimer', 'détester', 'bien', 'mal', 'bon', 'mauvais', 'grand', 'petit', 'nouveau', 'vieux', 'beau', 'laid', 'heureux', 'triste', 'fatigué', 'malade', 'sain', 'fort', 'faible'];
+        
+        // Mots anglais courants pour détecter l'anglais
+        const englishWords = ['hello', 'hi', 'thanks', 'thank you', 'yes', 'no', 'how', 'why', 'when', 'where', 'who', 'what', 'how', 'i', 'you', 'he', 'she', 'we', 'they', 'am', 'is', 'are', 'have', 'has', 'do', 'does', 'go', 'come', 'see', 'know', 'can', 'will', 'would', 'should', 'take', 'give', 'say', 'speak', 'listen', 'watch', 'think', 'feel', 'like', 'love', 'hate', 'good', 'bad', 'big', 'small', 'new', 'old', 'beautiful', 'ugly', 'happy', 'sad', 'tired', 'sick', 'healthy', 'strong', 'weak'];
+        
+        const currentMessageLower = currentMessage.toLowerCase();
+        
+        // Compter les mots français et anglais dans le message actuel
+        let frenchCount = 0;
+        let englishCount = 0;
+        
+        frenchWords.forEach(word => {
+            if (currentMessageLower.includes(word)) frenchCount++;
+        });
+        
+        englishWords.forEach(word => {
+            if (currentMessageLower.includes(word)) englishCount++;
+        });
+        
+        // Si on a un historique, vérifier aussi la langue dominante de l'historique
+        if (conversationHistory && conversationHistory.length > 0) {
+            const historyText = conversationHistory.map(msg => msg.content).join(' ').toLowerCase();
+            
+            let historyFrenchCount = 0;
+            let historyEnglishCount = 0;
+            
+            frenchWords.forEach(word => {
+                if (historyText.includes(word)) historyFrenchCount++;
+            });
+            
+            englishWords.forEach(word => {
+                if (historyText.includes(word)) historyEnglishCount++;
+            });
+            
+            // Si l'historique est majoritairement dans une langue, l'utiliser
+            if (historyFrenchCount > historyEnglishCount && historyFrenchCount > 0) {
+                return 'french';
+            } else if (historyEnglishCount > historyFrenchCount && historyEnglishCount > 0) {
+                return 'english';
+            }
+        }
+        
+        // Sinon, utiliser la langue du message actuel
+        if (frenchCount > englishCount) {
+            return 'french';
+        } else if (englishCount > frenchCount) {
+            return 'english';
+        }
+        
+        // Par défaut, français
+        return 'french';
+    }
+
+    // Crée un prompt système adapté à la langue détectée
+    createLanguageSpecificPrompt(language) {
+        if (language === 'french') {
+            return {
+                role: "system",
+                content: `Tu es Haven, un assistant IA très concis spécialisé dans le bien-être mental. Réponds TOUJOURS en français.
+
+RÈGLES STRICTES (à suivre pour CHAQUE réponse):
+- Limite-toi à 1-2 phrases maximum, jamais plus
+- Utilise un ton conversationnel, comme dans un chat entre amis
+- Formule principalement des questions courtes et directes
+- NE donne JAMAIS d'explications longues ou théoriques
+- NE développe JAMAIS plusieurs points dans la même réponse
+- Évite les formulations complexes ou trop professionnelles
+
+Exemples parfaits:
+- "Comment te sens-tu exactement aujourd'hui ?"
+- "Qu'est-ce qui t'inquiète le plus en ce moment ?"
+- "As-tu essayé la respiration profonde ? Ça aide souvent."
+- "Je comprends. Qu'est-ce qui pourrait te faire te sentir mieux maintenant ?"
+
+Ton objectif unique: maintenir une conversation brève et naturelle, comme par SMS, en français.`
+            };
+        } else {
+            return {
+                role: "system",
+                content: `You are Haven, a very concise AI assistant specialized in mental well-being. Always respond in English.
+
+STRICT RULES (to follow for EVERY response):
+- Limit yourself to 1-2 sentences maximum, never more
+- Use a conversational tone, like in a chat between friends
+- Formulate mainly short and direct questions
+- NEVER give long or theoretical explanations
+- NEVER develop multiple points in the same response
+- Avoid complex or overly professional formulations
+
+Perfect examples:
+- "How are you feeling today exactly?"
+- "What worries you most right now?"
+- "Have you tried deep breathing? It often helps."
+- "I understand. What could make you feel better now?"
+
+Your unique goal: maintain a brief and natural conversation, like through text messages, in English.`
+            };
+        }
+    }
+
     async sendMessage(req, res) {
         try {
             const { message, userId } = req.body;
@@ -111,12 +221,33 @@ Ton objectif unique: maintenir une conversation brève et naturelle, comme par m
             }
 
             const conversationHistory = await chatbotService.getConversationHistory(userId);
+            
+            // Détecter la langue de la conversation
+            const conversationLanguage = this.detectConversationLanguage(message, conversationHistory);
+            console.log('Langue détectée pour la conversation:', conversationLanguage);
+            
+            // Créer un prompt système adapté à la langue
+            const languageSpecificPrompt = this.createLanguageSpecificPrompt(conversationLanguage);
 
             try {
-                console.log('Tentative d\'appel à l\'API Mistral 2', [
-                    this.systemPrompt,
-                    { role: "user", content: message }
-                ]);
+                // Préparer les messages pour l'API
+                const messages = [languageSpecificPrompt];
+                
+                // Ajouter l'historique de conversation si disponible
+                if (conversationHistory && conversationHistory.length > 0) {
+                    conversationHistory.forEach(msg => {
+                        messages.push({
+                            role: msg.role || "user",
+                            content: msg.content
+                        });
+                    });
+                }
+                
+                // Ajouter le message actuel
+                messages.push({ role: "user", content: message });
+                
+                console.log('Messages envoyés à l\'API Mistral:', messages);
+                
                 const response = await fetch(this.MISTRAL_API_URL, {
                     method: 'POST',
                     headers: {
@@ -125,10 +256,7 @@ Ton objectif unique: maintenir une conversation brève et naturelle, comme par m
                     },
                     body: JSON.stringify({
                         model: "mistral-tiny",
-                        messages: [
-                            this.systemPrompt,
-                            { role: "user", content: message }
-                        ],
+                        messages: messages,
                         temperature: 0.7,
                         max_tokens: 300
                     })
@@ -144,9 +272,15 @@ Ton objectif unique: maintenir une conversation brève et naturelle, comme par m
 
                 // Sauvegarder la conversation
                 try {
-                    await chatbotService.saveConversation(userId, message, aiResponse);
+                    const session = await chatbotService.saveConversation(userId, message, aiResponse);
+                    
+                    // Générer et sauvegarder le rapport automatiquement
+                    const sessionReport = await this.generateSessionReport(session.id_session, message, aiResponse, conversationLanguage);
+                    await chatbotService.saveSessionReport(session.id_session, sessionReport);
+                    
+                    console.log('Rapport de session généré et sauvegardé');
                 } catch (saveError) {
-                    console.error('Erreur lors de la sauvegarde de la conversation:', saveError);
+                    console.error('Erreur lors de la sauvegarde de la conversation ou du rapport:', saveError);
                     // Continue même si la sauvegarde échoue
                 }
 
@@ -272,9 +406,16 @@ Ton objectif unique: maintenir une conversation brève et naturelle, comme par m
 
                 // Sauvegarder la conversation
                 try {
-                    await chatbotService.saveConversation(userId, message, aiResponse);
+                    const session = await chatbotService.saveConversation(userId, message, aiResponse);
+                    
+                    // Générer et sauvegarder le rapport automatiquement
+                    const conversationLanguage = this.detectConversationLanguage(message, conversationHistory);
+                    const sessionReport = await this.generateSessionReport(session.id_session, message, aiResponse, conversationLanguage);
+                    await chatbotService.saveSessionReport(session.id_session, sessionReport);
+                    
+                    console.log('Rapport de session généré et sauvegardé');
                 } catch (saveError) {
-                    console.error('Erreur lors de la sauvegarde de la conversation:', saveError);
+                    console.error('Erreur lors de la sauvegarde de la conversation ou du rapport:', saveError);
                 }
 
                 const response = {
@@ -385,6 +526,172 @@ Ton objectif unique: maintenir une conversation brève et naturelle, comme par m
             return successResponse(res, 200, 'Report generated successfully', report);
         } catch (error) {
             return errorResponse(res, 400, error.message);
+        }
+    }
+
+    // Génère un rapport de session automatiquement
+    async generateSessionReport(sessionId, userMessage, aiResponse, language) {
+        const timestamp = new Date();
+        const distressAnalysis = this.detectDistressAndEmergency(userMessage);
+        
+        // Extraire les thèmes du message
+        const topics = this.extractTopics(userMessage);
+        
+        // Analyser le sentiment
+        const sentiment = this.analyzeSentiment(userMessage);
+        
+        // Générer les recommandations
+        const recommendations = this.generateRecommendations(userMessage, distressAnalysis);
+        
+        // Déterminer si un suivi est nécessaire
+        const followUpNeeded = distressAnalysis.distressLevel >= 3;
+        const followUpUrgency = distressAnalysis.distressLevel >= 4 ? 'high' : 
+                               distressAnalysis.distressLevel >= 3 ? 'medium' : 'low';
+        const suggestedTiming = distressAnalysis.distressLevel >= 4 ? '24h' : 
+                               distressAnalysis.distressLevel >= 3 ? '48h' : '1 semaine';
+        
+        // Générer les notes professionnelles
+        const professionalNotes = this.generateProfessionalNotes(userMessage, distressAnalysis, topics);
+        
+        return {
+            distressLevel: distressAnalysis.distressLevel,
+            emergency: distressAnalysis.emergency,
+            sentiment: sentiment,
+            topics: topics,
+            language: language,
+            immediateRecommendations: recommendations.immediate,
+            longTermRecommendations: recommendations.longTerm,
+            followUpNeeded: followUpNeeded,
+            followUpUrgency: followUpUrgency,
+            suggestedTiming: suggestedTiming,
+            professionalNotes: professionalNotes
+        };
+    }
+
+    // Extrait les thèmes du message
+    extractTopics(message) {
+        const topics = [];
+        const lowerMessage = message.toLowerCase();
+        
+        if (lowerMessage.includes('burnout') || lowerMessage.includes('épuisement')) {
+            topics.push('burnout');
+        }
+        if (lowerMessage.includes('stress') || lowerMessage.includes('anxiété') || lowerMessage.includes('anxious')) {
+            topics.push('stress');
+        }
+        if (lowerMessage.includes('travail') || lowerMessage.includes('work') || lowerMessage.includes('boulot')) {
+            topics.push('work');
+        }
+        if (lowerMessage.includes('sommeil') || lowerMessage.includes('sleep') || lowerMessage.includes('dormir')) {
+            topics.push('sleep');
+        }
+        if (lowerMessage.includes('déprimé') || lowerMessage.includes('depressed') || lowerMessage.includes('triste')) {
+            topics.push('depression');
+        }
+        if (lowerMessage.includes('suicide') || lowerMessage.includes('mourir') || lowerMessage.includes('tuer')) {
+            topics.push('suicide');
+        }
+        
+        return topics.length > 0 ? topics : ['general'];
+    }
+
+    // Analyse le sentiment du message
+    analyzeSentiment(message) {
+        const lowerMessage = message.toLowerCase();
+        const negativeWords = ['burnout', 'stress', 'anxiété', 'déprimé', 'triste', 'fatigué', 'mal', 'difficile', 'problème'];
+        const positiveWords = ['bien', 'mieux', 'content', 'heureux', 'satisfait', 'bon', 'positif'];
+        
+        let negativeCount = 0;
+        let positiveCount = 0;
+        
+        negativeWords.forEach(word => {
+            if (lowerMessage.includes(word)) negativeCount++;
+        });
+        
+        positiveWords.forEach(word => {
+            if (lowerMessage.includes(word)) positiveCount++;
+        });
+        
+        if (negativeCount > positiveCount) return 'negative';
+        if (positiveCount > negativeCount) return 'positive';
+        return 'neutral';
+    }
+
+    // Génère les recommandations
+    generateRecommendations(message, distressAnalysis) {
+        const immediate = [];
+        const longTerm = [];
+        
+        if (distressAnalysis.distressLevel >= 4) {
+            immediate.push('Exercices de respiration 4-7-8');
+            immediate.push('Prendre une pause immédiate');
+            longTerm.push('Consulter un psychologue (URGENT)');
+        } else if (distressAnalysis.distressLevel >= 3) {
+            immediate.push('Pauses régulières');
+            immediate.push('Techniques de relaxation');
+            longTerm.push('Consulter un psychologue');
+        } else {
+            immediate.push('Maintenir les bonnes habitudes');
+            longTerm.push('Continuer le suivi');
+        }
+        
+        if (message.toLowerCase().includes('burnout')) {
+            immediate.push('Limiter les heures de travail');
+            longTerm.push('Discuter avec son employeur');
+        }
+        
+        return { immediate, longTerm };
+    }
+
+    // Génère les notes professionnelles
+    generateProfessionalNotes(message, distressAnalysis, topics) {
+        let notes = `Patient présente un niveau de détresse de ${distressAnalysis.distressLevel}/5. `;
+        
+        if (topics.includes('burnout')) {
+            notes += 'Signes de burnout confirmés. ';
+        }
+        if (distressAnalysis.emergency) {
+            notes += 'URGENCE - Intervention immédiate requise. ';
+        }
+        if (distressAnalysis.distressLevel >= 4) {
+            notes += 'Niveau de détresse élevé nécessitant un suivi rapproché. ';
+        }
+        
+        notes += `Thèmes abordés: ${topics.join(', ')}. `;
+        notes += `Langue utilisée: ${distressAnalysis.language || 'non détectée'}.`;
+        
+        return notes;
+    }
+
+    // Récupère tous les rapports de session d'un utilisateur
+    async getSessionReports(req, res) {
+        try {
+            const userId = req.user.id_user;
+            const reports = await chatbotService.getUserReports(userId);
+            
+            return successResponse(res, 200, 'Session reports retrieved successfully', {
+                reports: reports
+            });
+        } catch (error) {
+            return errorResponse(res, 500, error.message);
+        }
+    }
+
+    // Récupère un rapport de session spécifique
+    async getSessionReportById(req, res) {
+        try {
+            const reportId = parseInt(req.params.reportId);
+            const report = await chatbotService.getReportById(reportId);
+            
+            if (!report) {
+                return errorResponse(res, 404, 'Report not found');
+            }
+            
+            return successResponse(res, 200, 'Session report retrieved successfully', {
+                report: report
+            });
+        } catch (error) {
+            return errorResponse(res, 500, error.message);
         }
     }
 }

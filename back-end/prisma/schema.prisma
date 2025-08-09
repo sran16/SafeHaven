@@ -44,6 +44,7 @@ model Chatbot_sessions {
 
   ia               IA?
   messages         Chat_Messages[]
+  report           Session_Reports?
 }
 
 model Chat_Messages {
@@ -57,6 +58,37 @@ model Chat_Messages {
 
   @@index([timestamp])
   @@index([sessionId])
+}
+
+model Session_Reports {
+  id_report        Int      @id @default(autoincrement())
+  sessionId        Int      @unique
+  session          Chatbot_sessions @relation(fields: [sessionId], references: [id_session], onDelete: Cascade)
+  
+  // Données du rapport
+  distressLevel    Int      // 1-5
+  emergency        Boolean  @default(false)
+  sentiment        String   // positive, negative, neutral
+  topics           String[] // ["burnout", "stress", "work"]
+  language         String   // french, english
+  
+  // Recommandations
+  immediateRecommendations String[] // ["pause", "respiration"]
+  longTermRecommendations  String[] // ["psychologue", "thérapie"]
+  
+  // Suivi
+  followUpNeeded   Boolean  @default(false)
+  followUpUrgency  String   // low, medium, high
+  suggestedTiming  String   // "48h", "1 semaine"
+  
+  // Notes professionnelles
+  professionalNotes String? // Notes pour le psychologue
+  
+  createdAt        DateTime @default(now())
+  
+  @@index([createdAt])
+  @@index([distressLevel])
+  @@index([emergency])
 }
 
 model IA {

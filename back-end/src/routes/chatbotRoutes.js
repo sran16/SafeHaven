@@ -20,4 +20,8 @@ router.get('/analysis', chatbotController.getSentimentAnalysis);
 router.get('/recommendations', chatbotController.getRecommendations);
 router.get('/report', chatbotController.generateReport);
 
+// Rapports de session
+router.get('/session-reports', chatbotController.getSessionReports);
+router.get('/session-reports/:reportId', chatbotController.getSessionReportById);
+
 export default router; 
