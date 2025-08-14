@@ -56,9 +56,7 @@
   min-width: 60px;
 }
 
-.nav-item:hover {
-  background-color: rgba(255, 255, 255, 0.1);
-}
+
 
 .nav-item.active {
   background-color: rgba(255, 255, 255, 0.2);

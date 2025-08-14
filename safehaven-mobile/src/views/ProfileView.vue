@@ -1,86 +1,594 @@
 <template>
-  <div class="profile-container">
-    <header class="profile-header">
-      <button @click="$router.go(-1)" class="back-btn">←</button>
-      <h2>Profil</h2>
-    </header>
-    
-    <main class="profile-content">
-      <div class="logout-section">
-        <button @click="handleLogout" class="logout-btn">Se déconnecter</button>
+  <div class="chatbot-bg">
+    <div class="profile-container">
+      <div class="profile-header">
+        <div class="user-info">
+          <h1 class="username">{{ displayName }}</h1>
+          <p class="member-since">Membre depuis {{ displayDate }}</p>
+        </div>
       </div>
-    </main>
+
+      <!-- Statistiques -->
+      <StatsCard>
+        <template #value>{{ userPosts.length }}</template>
+        <template #label>Posts</template>
+      </StatsCard>
+
+      
+
+      <!-- Contenu principal avec tabs -->
+      <div class="main-content">
+        <div class="tabs-container">
+          <button
+            v-for="tab in tabs"
+            :key="tab.id"
+            :class="['tab-btn', { active: currentTab === tab.id }]"
+            @click="handleTabChange(tab.id)"
+          >
+            {{ tab.name }}
+          </button>
+        </div>
+
+        <!-- Contenu des tabs -->
+        <div class="tab-content">
+          <!-- Posts -->
+          <div v-if="currentTab === 'posts'" class="posts-tab">
+            <PostsList :posts="userPosts" :loading="loadingPosts">
+              <template #loading>
+                <div class="loading-state">
+                  <div class="loading-spinner"></div>
+                  <p>Chargement des posts...</p>
+                </div>
+              </template>
+              <template #empty>
+                <div class="empty-state">
+                  <p>Vous n'avez pas encore de publications</p>
+                  <button @click="$router.push('/create-post')" class="create-post-btn">Créer une publication</button>
+                </div>
+              </template>
+            </PostsList>
+          </div>
+
+          <!-- Mood Tracker -->
+          <div v-else-if="currentTab === 'mood'" class="mood-tab">
+            <div v-if="loadingMood" class="loading-state">
+              <div class="loading-spinner"></div>
+              <p>Chargement des données de mood...</p>
+            </div>
+            
+            <div v-else-if="moodError" class="error-state">
+              <p>{{ moodError }}</p>
+              <button @click="fetchMoodData" class="retry-btn">Réessayer</button>
+            </div>
+            
+            <div v-else-if="moodData.length === 0" class="empty-state">
+              <p>Vous n'avez pas encore enregistré de mood</p>
+              <button @click="$router.push('/mood')" class="start-tracking-btn">
+                Commencer le suivi
+              </button>
+            </div>
+            
+          <div v-else class="mood-chart">
+            <MoodChart :mood-data="moodData" />
+          </div>
+          </div>
+
+          <!-- Chat History -->
+          <div v-else-if="currentTab === 'chat'" class="chat-tab">
+            <ChatHistory 
+              :messages="chatMessages" 
+              :loading="loadingChat" 
+              :error="chatError" 
+              @retry="fetchChatHistory" 
+              @start="$router.push('/chatbot')" />
+          </div>
+
+          <!-- Emotional Overview -->
+          <div v-else-if="currentTab === 'overview'" class="overview-tab">
+            <EmotionalOverview 
+              :reports="sessionReports" 
+              :loading="loadingOverview" 
+              :error="overviewError" 
+              @retry="fetchOverview" 
+              @startChat="$router.push('/chatbot')" />
+          </div>
+        </div>
+      </div>
+
+      <!-- Modal Édition Profil -->
+      <div v-if="showEditProfile" class="modal">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h2>Modifier le profil</h2>
+            <button class="close-btn" @click="showEditProfile = false">×</button>
+          </div>
+
+          <form @submit.prevent="updateProfile" class="edit-form">
+            <div class="form-group">
+              <label for="username">Nom d'utilisateur</label>
+              <input id="username" v-model="editForm.username" type="text" placeholder="Votre nom d'utilisateur" />
+            </div>
+
+            <div class="form-group">
+              <label for="bio">Bio</label>
+              <textarea id="bio" v-model="editForm.bio" rows="3" placeholder="Parlez-nous de vous"></textarea>
+            </div>
+
+            <div class="form-actions">
+              <button type="button" class="cancel-btn" @click="showEditProfile = false">Annuler</button>
+              <button type="submit" class="save-btn">Enregistrer</button>
+            </div>
+          </form>
+        </div>
+      </div>
+
+      <!-- TabBar -->
+      <TabBar />
+    </div>
   </div>
 </template>
 
 <script setup>
-import { useAuthStore } from '../stores/auth'
+import { ref, onMounted, computed } from 'vue'
+import { useRouter } from 'vue-router'
+import axios from 'axios'
+import { getApiUrl, getAuthHeaders } from '../utils/api'
+import MoodChart from '../components/Profile/MoodChart.vue'
+import TabBar from '../components/Mobile/TabBar.vue'
+import StatsCard from '../components/Profile/StatsCard.vue'
+import PostsList from '../components/Profile/PostsList.vue'
+import ChatHistory from '../components/Profile/ChatHistory.vue'
+import EmotionalOverview from '../components/Profile/EmotionalOverview.vue'
 
-const authStore = useAuthStore()
+const router = useRouter()
 
-const handleLogout = async () => {
+// User data
+const user = ref({ name: '', email: '', registration_Date: new Date(), avatar: null })
+
+// UI state
+const currentTab = ref('posts')
+const showEditProfile = ref(false)
+
+// Data
+const userPosts = ref([])
+const chatMessages = ref([])
+const moodData = ref([])
+
+// Loading states
+const loadingPosts = ref(false)
+const loadingChat = ref(false)
+const loadingMood = ref(false)
+
+// Error states
+const chatError = ref(null)
+const moodError = ref(null)
+const overviewError = ref(null)
+
+// Edit form
+const editForm = ref({ username: '', bio: '' })
+
+// Tabs
+const tabs = [
+  { id: 'posts', name: 'Posts' },
+  { id: 'mood', name: 'Mood log' },
+  { id: 'chat', name: 'Chat history' },
+  { id: 'overview', name: 'Emotional overview' }
+]
+
+// Derivés d'affichage robustes
+const displayName = computed(() => user.value?.username || user.value?.name || 'USER pseudo')
+const displayDate = computed(() => {
+  const raw = user.value?.createdAt || user.value?.registration_Date
   try {
-    await authStore.logout()
-  } catch (error) {
-    console.error('Erreur lors de la déconnexion:', error)
-    alert('Erreur lors de la déconnexion')
-  }
+    const d = new Date(raw)
+    if (raw && !isNaN(d.getTime())) {
+      return d.toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })
+    }
+  } catch {}
+  return 'Date inconnue'
+})
+
+// Chat: sélection de session
+const selectedSession = ref(null)
+const selectSession = (session) => { selectedSession.value = session }
+
+// Mood: emoji helper
+const moodEmoji = (type) => {
+  const map = { happy: '😊', calm: '😌', neutral: '😐', anxious: '😰', sad: '😢', angry: '😠' }
+  return map[type] || '🫧'
 }
+
+const formatDate=(d)=>{try{const dt=new Date(d);if(isNaN(dt.getTime()))return 'Date inconnue';return dt.toLocaleDateString('fr-FR',{day:'numeric',month:'long',year:'numeric'})}catch{return 'Date inconnue'}}
+const formatChatTime=(d)=>{try{const dt=new Date(d);if(isNaN(dt.getTime()))return '';return dt.toLocaleString('fr-FR',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'})}catch{return ''}}
+
+const handleTabChange=(tab)=>{
+  currentTab.value=tab
+  if(tab==='posts') fetchUserPosts()
+  else if(tab==='mood') fetchMoodData()
+  else if(tab==='chat') fetchChatHistory()
+  else if(tab==='overview') fetchOverview()
+}
+
+const fetchUserPosts=async()=>{try{loadingPosts.value=true;const apiUrl=getApiUrl();const res=await axios.get(`${apiUrl}/api/experiences/user`,getAuthHeaders());if(res.data.success){userPosts.value=res.data.data.map(p=>({...p,comments:p.comments||[]}))}}catch(e){if(e.response?.status===401)router.push('/login')}finally{loadingPosts.value=false}}
+const fetchMoodData=async()=>{try{loadingMood.value=true;moodError.value=null;const apiUrl=getApiUrl();const res=await axios.get(`${apiUrl}/api/moods`,getAuthHeaders());moodData.value=res.data.data||[]}catch(e){moodError.value='Impossible de charger les données de mood'}finally{loadingMood.value=false}}
+const fetchChatHistory=async()=>{try{loadingChat.value=true;chatError.value=null;const apiUrl=getApiUrl();const res=await axios.get(`${apiUrl}/api/chat/history`,getAuthHeaders());if(res.data&&res.data.success){chatMessages.value=res.data.data}else{chatError.value='Impossible de récupérer l\'historique du chat'}}catch(e){chatError.value='Une erreur est survenue lors de la récupération de l\'historique du chat'}finally{loadingChat.value=false}}
+const sessionReports = ref([])
+const loadingOverview = ref(false)
+const fetchOverview = async()=>{try{loadingOverview.value=true;overviewError.value=null;const apiUrl=getApiUrl();const res=await axios.get(`${apiUrl}/api/chat/session-reports`,getAuthHeaders());if(res.data&&res.data.success){sessionReports.value = res.data.data.reports || res.data.data || []}else{overviewError.value='Impossible de charger les rapports'}}catch(e){overviewError.value='Erreur lors du chargement des rapports'}finally{loadingOverview.value=false}}
+const fetchUserData=async()=>{try{const apiUrl=getApiUrl();const res=await axios.get(`${apiUrl}/api/users/profile`,getAuthHeaders());if(res.data.success){user.value=res.data.data;editForm.value.username=user.value.username||user.value.name;editForm.value.bio=user.value.bio||''}}catch(e){}}
+const updateProfile=async()=>{try{const apiUrl=getApiUrl();await axios.put(`${apiUrl}/api/users/profile`,editForm.value,getAuthHeaders());user.value.username=editForm.value.username;showEditProfile.value=false}catch(e){}}
+const handleLogout=()=>{localStorage.removeItem('token');localStorage.removeItem('user');router.push('/login')}
+
+onMounted(async()=>{await fetchUserData();await fetchUserPosts()})
 </script>
 
 <style scoped>
+.chatbot-bg {
+  min-height: 100vh;
+  width: 100vw;
+  background: url('../assets/Bgs/ChatbotBg.svg') no-repeat center center;
+  background-size: cover;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: flex-start;
+  padding-top: 40px;
+}
+
 .profile-container {
   min-height: 100vh;
-  background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+  padding-bottom: 100px;
 }
 
+/* Header avec infos utilisateur */
 .profile-header {
-  display: flex;
-  align-items: center;
-  padding: 15px 20px;
-  background: white;
-  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+  padding: 24px;
+  
 }
 
-.back-btn {
+.user-info {
+  position: relative;
+  z-index: 1;
+}
+
+.username {
+  color: var(--Muted-Olive, #7C7E73);
+  font-family: 'Fraunces', serif;
+  font-size: 28px;
+  font-weight: 600;
+  margin: 0 0 8px 0;
+}
+
+.member-since {
+  color: var(--text-secondary);
+  font-size: 14px;
+  margin: 0;
+}
+
+
+/* Contenu principal */
+.main-content {
+  background: var(--light-ivory, #F6F4F0);;
+  border-radius: 20px 20px 0 0;
+  margin: 0 24px;
+  overflow: hidden;
+  box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.05);
+}
+
+/* Tabs */
+.tabs-container {
+  display: flex;
+  background: var(--light-ivory, #F6F4F0);;
+  border-bottom: 1px solid rgba(124, 126, 115, 0.1);
+}
+
+.tab-btn {
+  flex: 1;
+  padding: 16px 12px;
   background: none;
   border: none;
-  font-size: 1.5rem;
-  margin-right: 15px;
+  color: var(--text-secondary);
+  font-size: 14px;
+  font-weight: 500;
   cursor: pointer;
-  color: #667eea;
+  transition: all 0.2s ease;
+  position: relative;
 }
 
-.profile-header h2 {
-  margin: 0;
-  color: #333;
+.tab-btn.active {
+  color: var(--Muted-Olive, #7C7E73);
 }
 
-.profile-content {
-  padding: 20px;
+.tab-btn.active::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: var(--Muted-Olive, #7C7E73);
 }
 
-.logout-section {
+/* Contenu des tabs */
+.tab-content {
+  min-height: 400px;
+  padding: 24px;
+}
+
+
+/* Chat History */
+.chat-sessions {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.date-group {
+  border-bottom: 1px solid rgba(124, 126, 115, 0.1);
+  padding-bottom: 16px;
+}
+
+.date-header {
+  color: var(--Muted-Olive, #7C7E73);
+  font-size: 16px;
+  font-weight: 500;
+  margin-bottom: 12px;
+}
+
+.session-item {
+  padding: 12px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  margin-bottom: 8px;
+}
+
+.session-item:hover {
+  background: rgba(124, 126, 115, 0.05);
+}
+
+.session-item.active {
+  background: var(--Muted-Olive, #7C7E73);
+  color: white;
+}
+
+.session-message {
+  font-size: 14px;
+  color: inherit;
+}
+
+/* Session details */
+.session-details {
   background: white;
-  padding: 30px;
-  border-radius: 15px;
-  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
-  text-align: center;
+  border: 1px solid rgba(124, 126, 115, 0.1);
+  border-radius: 12px;
+  margin-top: 16px;
 }
 
-.logout-btn {
-  background: #dc3545;
+.session-header {
+  padding: 16px;
+  border-bottom: 1px solid rgba(124, 126, 115, 0.1);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.session-header h3 {
+  margin: 0;
+  font-size: 16px;
+  color: var(--Muted-Olive, #7C7E73);
+}
+
+.close-session-btn {
+  background: none;
+  border: none;
+  font-size: 20px;
+  color: var(--text-secondary);
+  cursor: pointer;
+  padding: 4px;
+}
+
+.messages-container {
+  padding: 16px;
+  max-height: 300px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.message {
+  max-width: 80%;
+  padding: 12px;
+  border-radius: 12px;
+  position: relative;
+}
+
+.user-message {
+  align-self: flex-end;
+  background: var(--Muted-Olive, #7C7E73);
+  color: white;
+}
+
+.bot-message {
+  align-self: flex-start;
+  background: rgba(124, 126, 115, 0.1);
+  color: var(--text-primary);
+}
+
+.message-content {
+  margin-bottom: 4px;
+  font-size: 14px;
+}
+
+.message-time {
+  font-size: 12px;
+  opacity: 0.7;
+  text-align: right;
+}
+
+/* Loading et états vides */
+.loading-state,
+.error-state,
+.empty-state {
+  text-align: center;
+  padding: 40px 20px;
+  color: var(--text-secondary);
+}
+
+.loading-spinner {
+  border: 3px solid rgba(124, 126, 115, 0.1);
+  border-top: 3px solid var(--Muted-Olive, #7C7E73);
+  border-radius: 50%;
+  width: 40px;
+  height: 40px;
+  animation: spin 1s linear infinite;
+  margin: 0 auto 16px;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.create-post-btn,
+.start-tracking-btn,
+.start-chat-btn,
+.retry-btn {
+  background: var(--Muted-Olive, #7C7E73);
   color: white;
   border: none;
-  border-radius: 10px;
-  padding: 15px 30px;
-  font-size: 16px;
-  font-weight: bold;
+  border-radius: 8px;
+  padding: 12px 20px;
+  font-size: 14px;
+  font-weight: 500;
   cursor: pointer;
-  transition: background 0.2s;
+  margin-top: 16px;
+  transition: all 0.2s ease;
 }
 
-.logout-btn:hover {
-  background: #c82333;
+.create-post-btn:hover,
+.start-tracking-btn:hover,
+.start-chat-btn:hover,
+.retry-btn:hover {
+  background: #6b6d63;
 }
+
+/* Modal */
+.modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: flex-end;
+  z-index: 1000;
+}
+
+.modal-content {
+  width: 100%;
+  background: white;
+  border-radius: 20px 20px 0 0;
+  padding: 24px;
+  animation: slideUp 0.3s ease;
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+}
+
+.modal-header h2 {
+  margin: 0;
+  font-size: 20px;
+  color: var(--Muted-Olive, #7C7E73);
+}
+
+.close-btn {
+  background: none;
+  border: none;
+  font-size: 24px;
+  color: var(--text-secondary);
+  cursor: pointer;
+  padding: 4px;
+}
+
+.edit-form {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.form-group label {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--Muted-Olive, #7C7E73);
+}
+
+.form-group input,
+.form-group textarea {
+  padding: 12px;
+  border: 1px solid rgba(124, 126, 115, 0.2);
+  border-radius: 8px;
+  font-size: 16px;
+  font-family: inherit;
+}
+
+.form-group input:focus,
+.form-group textarea:focus {
+  outline: none;
+  border-color: var(--Muted-Olive, #7C7E73);
+}
+
+.form-actions {
+  display: flex;
+  gap: 12px;
+  margin-top: 24px;
+}
+
+.cancel-btn,
+.save-btn {
+  flex: 1;
+  padding: 12px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  border: none;
+  transition: all 0.2s ease;
+}
+
+.cancel-btn {
+  background: rgba(124, 126, 115, 0.1);
+  color: var(--Muted-Olive, #7C7E73);
+}
+
+.save-btn {
+  background: var(--Muted-Olive, #7C7E73);
+  color: white;
+}
+
+.cancel-btn:hover {
+  background: rgba(124, 126, 115, 0.2);
+}
+
+.save-btn:hover {
+  background: #6b6d63;
+}
+
+@keyframes slideUp {
+  from { transform: translateY(100%); }
+  to { transform: translateY(0); }
+}
+
 </style>

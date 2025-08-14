@@ -69,7 +69,6 @@ Your unique goal: maintain a brief and natural conversation, like through text m
         // Bind des méthodes pour préserver le contexte
         this.detectDistressAndEmergency = this.detectDistressAndEmergency.bind(this);
         this.getWellnessExercise = this.getWellnessExercise.bind(this);
-        this.sendMessage = this.sendMessage.bind(this);
         this.startSession = this.startSession.bind(this);
         this.processMessage = this.processMessage.bind(this);
         this.getHistory = this.getHistory.bind(this);
@@ -127,7 +126,17 @@ Your unique goal: maintain a brief and natural conversation, like through text m
         
         // Si on a un historique, vérifier aussi la langue dominante de l'historique
         if (conversationHistory && conversationHistory.length > 0) {
-            const historyText = conversationHistory.map(msg => msg.content).join(' ').toLowerCase();
+            // Extraire tous les messages de toutes les sessions
+            const allMessages = [];
+            conversationHistory.forEach(session => {
+                if (session.messages && session.messages.length > 0) {
+                    session.messages.forEach(msg => {
+                        allMessages.push(msg.content);
+                    });
+                }
+            });
+            
+            const historyText = allMessages.join(' ').toLowerCase();
             
             let historyFrenchCount = 0;
             let historyEnglishCount = 0;
@@ -206,102 +215,6 @@ Your unique goal: maintain a brief and natural conversation, like through text m
         }
     }
 
-    async sendMessage(req, res) {
-        try {
-            const { message, userId } = req.body;
-            console.log('Message reçu:', message);
-            console.log('ID utilisateur:', userId);
-            console.log('MISTRAL_API_KEY:', process.env.MISTRAL_API_KEY);
-
-            if (!this.MISTRAL_API_KEY) {
-                console.log('Clé API Mistral non configurée, utilisation du mode fallback');
-                return successResponse(res, 200, 'Fallback response', {
-                    response: "Je suis là pour vous écouter et vous soutenir. Comment puis-je vous aider aujourd'hui ?"
-                });
-            }
-
-            const conversationHistory = await chatbotService.getConversationHistory(userId);
-            
-            // Détecter la langue de la conversation
-            const conversationLanguage = this.detectConversationLanguage(message, conversationHistory);
-            console.log('Langue détectée pour la conversation:', conversationLanguage);
-            
-            // Créer un prompt système adapté à la langue
-            const languageSpecificPrompt = this.createLanguageSpecificPrompt(conversationLanguage);
-
-            try {
-                // Préparer les messages pour l'API
-                const messages = [languageSpecificPrompt];
-                
-                // Ajouter l'historique de conversation si disponible
-                if (conversationHistory && conversationHistory.length > 0) {
-                    conversationHistory.forEach(msg => {
-                        messages.push({
-                            role: msg.role || "user",
-                            content: msg.content
-                        });
-                    });
-                }
-                
-                // Ajouter le message actuel
-                messages.push({ role: "user", content: message });
-                
-                console.log('Messages envoyés à l\'API Mistral:', messages);
-                
-                const response = await fetch(this.MISTRAL_API_URL, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${this.MISTRAL_API_KEY}`
-                    },
-                    body: JSON.stringify({
-                        model: "mistral-tiny",
-                        messages: messages,
-                        temperature: 0.7,
-                        max_tokens: 300
-                    })
-                });
-
-                if (!response.ok) {
-                    console.error('Erreur API Mistral:', response.status);
-                    throw new Error(`Mistral API error: ${response.status}`);
-                }
-
-                const data = await response.json();
-                const aiResponse = data.choices[0].message.content;
-
-                // Sauvegarder la conversation
-                try {
-                    const session = await chatbotService.saveConversation(userId, message, aiResponse);
-                    
-                    // Générer et sauvegarder le rapport automatiquement
-                    const sessionReport = await this.generateSessionReport(session.id_session, message, aiResponse, conversationLanguage);
-                    await chatbotService.saveSessionReport(session.id_session, sessionReport);
-                    
-                    console.log('Rapport de session généré et sauvegardé');
-                } catch (saveError) {
-                    console.error('Erreur lors de la sauvegarde de la conversation ou du rapport:', saveError);
-                    // Continue même si la sauvegarde échoue
-                }
-
-                return successResponse(res, 200, 'Message processed successfully', {
-                    response: aiResponse
-                });
-
-            } catch (mistralError) {
-                console.error('Erreur détaillée de l\'API Mistral:', mistralError);
-
-                // Mode fallback avec message plus informatif
-                return successResponse(res, 200, 'Fallback response', {
-                    response: "Je suis désolé, j'ai du mal à traiter votre message pour le moment. Je suis là pour vous écouter et vous soutenir. Comment puis-je vous aider aujourd'hui ?"
-                });
-            }
-        } catch (error) {
-            console.error('Erreur générale dans sendMessage:', error);
-            return errorResponse(res, 500, 'Une erreur est survenue lors du traitement de votre message');
-        }
-    }
-
     async startSession(req, res) {
         try {
             const session = await chatbotService.createSession(req.body.userId);
@@ -373,43 +286,65 @@ Your unique goal: maintain a brief and natural conversation, like through text m
             }
 
             const conversationHistory = await chatbotService.getConversationHistory(userId);
-            const historyString = Array.isArray(conversationHistory)
-                ? conversationHistory.map(msg => msg.content).join('\n')
-                : (typeof conversationHistory === 'string' ? conversationHistory : '');
+            
+            // Détecter la langue de la conversation
+            const conversationLanguage = this.detectConversationLanguage(message, conversationHistory);
+            console.log('Langue détectée pour la conversation:', conversationLanguage);
+            
+            // Créer un prompt système adapté à la langue
+            const languageSpecificPrompt = this.createLanguageSpecificPrompt(conversationLanguage);
+
             try {
-                console.log('Tentative d\'appel à l\'API Mistral 2', [
-                    this.systemPrompt,
-                    { role: "user", content: historyString },
-                    { role: "user", content: message }
-                ]);
-                const mistralResponse = await axios.post(
-                    this.MISTRAL_API_URL,
-                    {
+                // Préparer les messages pour l'API
+                const messages = [languageSpecificPrompt];
+                
+                // Extraire tous les messages de l'historique des sessions
+                if (conversationHistory && conversationHistory.length > 0) {
+                    // Parcourir toutes les sessions et extraire leurs messages
+                    conversationHistory.forEach(session => {
+                        if (session.messages && session.messages.length > 0) {
+                            session.messages.forEach(msg => {
+                                messages.push({
+                                    role: msg.isUserMessage ? "user" : "assistant",
+                                    content: msg.content
+                                });
+                            });
+                        }
+                    });
+                }
+                
+                // Ajouter le message actuel
+                messages.push({ role: "user", content: message });
+                
+                console.log('Messages envoyés à l\'API Mistral:', messages);
+                
+                const response = await fetch(this.MISTRAL_API_URL, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${this.MISTRAL_API_KEY}`
+                    },
+                    body: JSON.stringify({
                         model: "mistral-tiny",
-                        messages: [
-                            this.systemPrompt,
-                            { role: "user", content: historyString },
-                            { role: "user", content: message }
-                        ],
+                        messages: messages,
                         temperature: 0.7,
                         max_tokens: 300
-                    },
-                    {
-                        headers: {
-                            'Content-Type': 'application/json',
-                            'Authorization': `Bearer ${this.MISTRAL_API_KEY}`
-                        }
-                    }
-                );
+                    })
+                });
 
-                const aiResponse = mistralResponse.data.choices[0].message.content;
+                if (!response.ok) {
+                    console.error('Erreur API Mistral:', response.status);
+                    throw new Error(`Mistral API error: ${response.status}`);
+                }
+
+                const data = await response.json();
+                const aiResponse = data.choices[0].message.content;
 
                 // Sauvegarder la conversation
                 try {
                     const session = await chatbotService.saveConversation(userId, message, aiResponse);
                     
                     // Générer et sauvegarder le rapport automatiquement
-                    const conversationLanguage = this.detectConversationLanguage(message, conversationHistory);
                     const sessionReport = await this.generateSessionReport(session.id_session, message, aiResponse, conversationLanguage);
                     await chatbotService.saveSessionReport(session.id_session, sessionReport);
                     
@@ -418,28 +353,28 @@ Your unique goal: maintain a brief and natural conversation, like through text m
                     console.error('Erreur lors de la sauvegarde de la conversation ou du rapport:', saveError);
                 }
 
-                const response = {
+                const responseData = {
                     response: aiResponse
                 };
 
                 if (analysis.emergency) {
-                    response.emergencyResources = this.emergencyResources;
+                    responseData.emergencyResources = this.emergencyResources;
                 }
 
-                return successResponse(res, 200, 'Message processed successfully', response);
+                return successResponse(res, 200, 'Message processed successfully', responseData);
 
             } catch (mistralError) {
-                console.error('Erreur détaillée de l\'API Mistral:', mistralError.response?.data || mistralError);
+                console.error('Erreur détaillée de l\'API Mistral:', mistralError);
 
-                const response = {
+                const responseData = {
                     response: "Je suis désolé, j'ai du mal à traiter votre message pour le moment. Je suis là pour vous écouter et vous soutenir. Comment puis-je vous aider aujourd'hui ?"
                 };
 
                 if (analysis.emergency) {
-                    response.emergencyResources = this.emergencyResources;
+                    responseData.emergencyResources = this.emergencyResources;
                 }
 
-                return successResponse(res, 200, 'Fallback response', response);
+                return successResponse(res, 200, 'Fallback response', responseData);
             }
         } catch (error) {
             console.error('Erreur générale dans processMessage:', error);

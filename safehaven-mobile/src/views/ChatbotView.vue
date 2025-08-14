@@ -1,7 +1,7 @@
 <template>
 <div class="chatbot-bg">
     <div class="chat-header">
-      <h1 class="welcome-title">Hello user</h1>
+      <h1 class="welcome-title">Hello {{ displayName }}</h1>
       <p class="welcome-message">Take a breath. I'm here with you.</p>
     </div>
 
@@ -31,7 +31,7 @@
 </template>
 
 <script setup>
-import { ref, nextTick, onMounted, onUnmounted } from 'vue'
+import { ref, nextTick, onMounted, onUnmounted, computed } from 'vue'
 import axios from 'axios'
 import { getApiUrl, getAuthHeaders } from '../utils/api'
 import Ia from '../components/Chat/Ia.vue'
@@ -133,21 +133,21 @@ const sendMessage = async () => {
   }
 }
 
-const getUserName = () => {
-  const userStr = localStorage.getItem('user')
-  if (userStr) {
-    try {
-      const user = JSON.parse(userStr)
-      return user.name || user.username || 'Utilisateur'
-    } catch (e) {
-      console.error('Erreur lors de la récupération du nom d\'utilisateur:', e)
-      return 'Utilisateur'
-    }
-  }
-  return 'Utilisateur'
-}
+const userObj = ref(null)
+const displayName = computed(() => {
+  const u = userObj.value
+  return (u?.username || u?.name || 'user')
+})
+
+const getUserName = () => displayName.value
 
 onMounted(async () => {
+  // Charger l'utilisateur stocké (username ou name)
+  try {
+    const userStr = localStorage.getItem('user')
+    if (userStr) userObj.value = JSON.parse(userStr)
+  } catch {}
+
   if (messageInput.value) {
     messageInput.value.focus()
   }

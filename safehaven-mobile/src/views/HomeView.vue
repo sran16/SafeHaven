@@ -1,14 +1,15 @@
 <template> 
+<div class="home-container">
     <Header />
     <div class="Intro"> 
         <p>Some experiences are heavy ...</p>
         <p>If you feel ready, we're here to hear it .</p>
     </div>
     
-    <!-- Composant Post qui fait les appels API automatiquement -->
     <div class="posts-wrapper">
         <Post />
     </div>
+</div>
 </template>
 
 <script setup>
@@ -17,6 +18,9 @@ import Post from '../components/Experience/Post.vue'
 </script>
 
 <style scoped>
+.home-container {
+  padding: 24px ;
+}
 .Intro {
     margin: 24px 0 0 0;
     width: 286px;
@@ -29,6 +33,6 @@ import Post from '../components/Experience/Post.vue'
 }
 
 .posts-wrapper {
-    margin-top: 32px; /* Plus d'espace entre le titre et les posts */
+    margin-top: 32px; 
 }
 </style>

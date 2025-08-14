@@ -1,13 +1,11 @@
 /* variables.css */
 :root {
   /* Couleurs Figma SafeHaven */
-  --primary: #7C9A92;        /* Vert apaisant */
-  --secondary: #F5E6E8;      /* Rose très pâle */
-  --accent: #D5B9B2;         /* Rose poudré */
-  --background: #F6F4F0;     /* Fond principal */
-  --text-primary: #2C3E50;   /* Texte principal */
-  --text-secondary: #647380; /* Texte secondaire */
-  
+  --primary: #7C7E73; 
+  --light-ivory: #F6F4F0;
+  --Muted-Olive: #7C7E73;
+  --text-primary: #7C7E73;
+  --text-secondary: #7C7E73;
   /* Bordures */
   --border-radius: 12px;
   --border-radius-lg: 20px;
@@ -22,13 +20,11 @@
 }
 
 body {
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  background-color: var(--background);
-  color: var(--text-primary);
+  font-family: Nunito;
   line-height: 1.6;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  padding: 50px 24px;
+  /* padding: 50px 24px; */
 }
 
 /* App container mobile */
