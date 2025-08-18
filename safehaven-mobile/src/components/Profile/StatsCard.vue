@@ -6,7 +6,7 @@
     </div>
     <!-- Boutons d'action -->
     <div class="action-buttons">
-        <button class="action-btn edit-btn" @click="showEditProfile = true">
+        <button class="action-btn edit-btn" @click="handleEditProfile">
           Edit profile
         </button>
         <button class="action-btn logout-btn" @click="handleLogout">
@@ -17,7 +17,15 @@
 </template>
 
 <script setup>
+const emit = defineEmits(['editProfile', 'logout'])
 
+const handleEditProfile = () => {
+  emit('editProfile')
+}
+
+const handleLogout = () => {
+  emit('logout')
+}
 </script>
 
 <style scoped>

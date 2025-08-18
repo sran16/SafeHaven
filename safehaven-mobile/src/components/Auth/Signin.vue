@@ -39,53 +39,55 @@
   
   <style scoped>
   .auth-form {
+    align-items: center;
     display: flex;
     flex-direction: column;
     gap: 18px;
   }
   
   .form-group {
+    width: 80%;
     display: flex;
     flex-direction: column;
     gap: 6px;
   }
   
   label {
-    color: #7C7E73;
+    color: var(--Muted-Olive);
     font-size: 15px;
     font-weight: 500;
     margin-bottom: 2px;
   }
   
   input {
-    border: 1px solid #7C7E73;
+    border: 1px solid var(--Muted-Olive);
     border-radius: 8px;
     padding: 10px 12px;
     font-size: 16px;
-    background: #fff;
-    color: #444;
+    color: var(--text-primary);
     outline: none;
     transition: border 0.2s;
   }
   
   input:focus {
-    border: 1.5px solid #7C7E73;
+    border: 1.5px solid var(--Muted-Olive);
   }
   
   .main-btn {
     margin-top: 10px;
-    background: #7C7E73;
-    color: #fff;
+    background: var(--Muted-Olive);
+    color: var(--light-ivory);
     border: none;
-    border-radius: 8px;
+    border-radius: 10px;
     padding: 12px 0;
-    font-size: 17px;
-    font-weight: 600;
+    font-size: 16px;
+    font-weight: 700;
+    line-height: normal;
+    font-family: 'Nunito';
+    font-style: normal;
     cursor: pointer;
+    width: 61%;
     transition: background 0.2s;
   }
   
-  .main-btn:hover {
-    background: #5e5f56;
-  }
   </style>

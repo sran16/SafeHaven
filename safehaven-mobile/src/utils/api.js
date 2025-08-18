@@ -1,4 +1,5 @@
 import { Capacitor } from '@capacitor/core';
+import { isTokenValid } from './tokenValidator';
 
 /**
  * Détermine si l'application s'exécute dans un environnement iOS
@@ -33,16 +34,9 @@ export const getApiUrl = () => {
 export const getAuthHeaders = () => {
   const token = localStorage.getItem('token');
   
-  if (token) {
-    try {
-      // Vérifier si le token est au format JWT (xxx.yyy.zzz)
-      const parts = token.split('.');
-      if (parts.length !== 3) {
-        console.warn('Format de token invalide, ne semble pas être un JWT');
-      }
-    } catch (e) {
-      console.error('Erreur lors de l\'analyse du token:', e);
-    }
+  // Validation complète du token (format + expiration)
+  if (token && !isTokenValid(token)) {
+    console.warn('Token invalide ou expiré détecté');
   }
   
   return {

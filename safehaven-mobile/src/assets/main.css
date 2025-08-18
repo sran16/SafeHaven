@@ -1,15 +1,30 @@
+
+@font-face {
+  font-family: 'Nunito';
+  src: url('@/assets/fonts/Nunito/Nunito-VariableFont_wght.ttf') format('truetype');
+  font-weight: 200 1000;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Playfair Display';
+  src: url('@/assets/Fonts/Fraunces,Playfair_Display/Playfair_Display/static/PlayfairDisplay-SemiBold.ttf') format('truetype');
+  font-weight: 600;
+  font-display: swap;
+}
+
 /* variables.css */
 :root {
-  /* Couleurs Figma SafeHaven */
   --primary: #7C7E73; 
   --light-ivory: #F6F4F0;
   --Muted-Olive: #7C7E73;
   --text-primary: #7C7E73;
   --text-secondary: #7C7E73;
+  --background: var(--light-ivory);
   /* Bordures */
   --border-radius: 12px;
   --border-radius-lg: 20px;
-  
 }
 
 /* Reset et base */
@@ -20,19 +35,30 @@
 }
 
 body {
-  font-family: Nunito;
-  line-height: 1.6;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
+  font-family: 'Nunito';
+  line-height: normal;
   /* padding: 50px 24px; */
+}
+
+/* Inputs globaux */
+input, textarea {
+  background-color: var(--light-ivory) !important;
 }
 
 /* App container mobile */
 #app {
   width: 100%;
   min-height: 100vh;
-  padding: var(--safe-area-top) var(--safe-area-right) var(--safe-area-bottom) var(--safe-area-left);
   background-color: var(--background);
+}
+
+/* Styles pour les pages avec navigation */
+#app.with-nav {
+  padding-bottom: 80px; 
+}
+
+main.with-nav {
+  min-height: calc(100vh - 80px);
 }
 
 .text-center {

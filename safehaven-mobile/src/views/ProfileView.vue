@@ -9,12 +9,12 @@
       </div>
 
       <!-- Statistiques -->
-      <StatsCard>
+      <StatsCard @editProfile="showEditProfile = true" @logout="handleLogout">
         <template #value>{{ userPosts.length }}</template>
         <template #label>Posts</template>
       </StatsCard>
 
-      
+
 
       <!-- Contenu principal avec tabs -->
       <div class="main-content">
@@ -122,8 +122,7 @@
         </div>
       </div>
 
-      <!-- TabBar -->
-      <TabBar />
+
     </div>
   </div>
 </template>
@@ -134,7 +133,7 @@ import { useRouter } from 'vue-router'
 import axios from 'axios'
 import { getApiUrl, getAuthHeaders } from '../utils/api'
 import MoodChart from '../components/Profile/MoodChart.vue'
-import TabBar from '../components/Mobile/TabBar.vue'
+
 import StatsCard from '../components/Profile/StatsCard.vue'
 import PostsList from '../components/Profile/PostsList.vue'
 import ChatHistory from '../components/Profile/ChatHistory.vue'
@@ -237,7 +236,6 @@ onMounted(async()=>{await fetchUserData();await fetchUserPosts()})
 
 .profile-container {
   min-height: 100vh;
-  padding-bottom: 100px;
 }
 
 /* Header avec infos utilisateur */

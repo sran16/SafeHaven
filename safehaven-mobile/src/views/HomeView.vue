@@ -19,7 +19,8 @@ import Post from '../components/Experience/Post.vue'
 
 <style scoped>
 .home-container {
-  padding: 24px ;
+  padding: 24px;
+  padding-top: 50px;
 }
 .Intro {
     margin: 24px 0 0 0;

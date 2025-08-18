@@ -31,15 +31,14 @@
       @save="handleSaveMood"
     />
 
-    <!-- TabBar -->
-    <TabBar />
+
   </div>
 </template>
 
 <script setup>
 import { ref, onMounted, computed } from 'vue'
 import { useMoodStore } from '../stores/moods'
-import TabBar from '../components/Mobile/TabBar.vue'
+
 import {
   MoodGreeting,
   DateSelector,
@@ -103,7 +102,7 @@ onMounted(async () => {
 }
 
 .main-content {
-  padding: 24px 24px 0 24px;
+  padding: 50px 24px 0 24px;
 }
 
 .separator {

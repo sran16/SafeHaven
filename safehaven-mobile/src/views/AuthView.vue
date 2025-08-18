@@ -53,12 +53,12 @@
     flex-direction: column;
     align-items: center;
     justify-content: flex-start;
-    padding-top: 40px;
+    padding-top: 80px;
   }
   
   .header {
     text-align: center;
-    margin-bottom: 10px;
+    margin-bottom: 100px;
   }
   
   .brand {
@@ -71,9 +71,10 @@
   
   .slogan {
     color: #7C7E73;
-    font-size: 15px;
+    font-size: 14px;
     font-weight: 400;
-    opacity: 0.7;
+    font-family: 'Nunito';
+    line-height: normal;
     margin-bottom: 20px;
   }
   
@@ -81,28 +82,16 @@
     display: flex;
     justify-content: center;
     align-items: center;
-    margin-bottom: -30px;
+    margin-bottom: -43px;
     z-index: 2;
   }
   
-  .mini-logo {
-    width: 40px;
-    height: 40px;
-    background: white;
-    border-radius: 50%;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.05);
-    padding: 6px;
-  }
   
   .auth-card {
-    background: #F9F7F7;
+    background: var(--light-ivory, #F6F4F0);
     border-radius: 20px;
-    box-shadow: 0 4px 24px rgba(124, 126, 115, 0.08);
     padding: 32px 24px 24px 24px;
-    width: 100%;
-    max-width: 350px;
-    margin: 0 auto;
-    margin-top: 0;
+    width: 73%;
     display: flex;
     flex-direction: column;
     align-items: stretch;
@@ -120,18 +109,16 @@
     background: none;
     border: none;
     outline: none;
-    font-size: 18px;
+    font-size: 16px;
     font-weight: 600;
-    color: #7C7E73;
+    color: var(--Muted-Olive);
     padding: 12px 0 8px 0;
     cursor: pointer;
-    transition: color 0.2s;
     border-bottom: 2px solid transparent;
+    font-family: 'Nunito';
+    line-height: normal;
   }
   
-  .tabs button.active {
-    color: #444;
-  }
   
   .tab-underline {
     display: flex;
@@ -150,13 +137,4 @@
     background: #7C7E73;
   }
   
-  @media (max-width: 400px) {
-    .auth-card {
-      padding: 20px 8px 16px 8px;
-      max-width: 98vw;
-    }
-    .brand {
-      font-size: 30px;
-    }
-  }
   </style>

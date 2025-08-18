@@ -208,14 +208,12 @@ onMounted(async () => {
 })
 // Annuler le padding global quand le composant est monté
 onMounted(() => {
-  document.body.style.padding = '0'
-  document.getElementById('app').style.padding = '0'
+  // Plus besoin de modifier les styles globaux - géré par App.vue
 })
 
-// Remettre le padding global quand le composant est démonté
+// Cleanup si nécessaire
 onUnmounted(() => {
-  document.body.style.padding = '50px 24px'
-  document.getElementById('app').style.padding = ''
+  // Plus besoin de modifier les styles globaux
 })
 </script>
 
@@ -293,14 +291,14 @@ onUnmounted(() => {
   outline: none;
   padding: 12px 16px;
   font-size: 16px;
-  background: transparent;
   color: var(--text-primary);
   font-family: Nunito;
+  border-radius: inherit;
 }
 
 .message-input::placeholder {
   color: rgba(124, 126, 115, 0.35);
-  font-family: Inter;
+  font-family: Nunito;
   font-size: 12px;
   font-style: normal;
   font-weight: 400;

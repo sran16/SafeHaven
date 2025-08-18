@@ -383,7 +383,7 @@ onMounted(() => {
   border: 1px solid #E0E0E0;
   border-radius: 8px;
   font-size: 14px;
-  background-color: white;
+  background-color: var(--light-ivory);
   outline: none;
   transition: border-color 0.2s;
 }
