@@ -39,8 +39,9 @@
   <style scoped>
   @font-face {
     font-family: 'Playfair Display';
-    src: url('@/assets/Fonts/Fraunces,Playfair_Display/Playfair_Display/static/PlayfairDisplay-SemiBold.ttf') format('truetype');
-    font-weight: 600;
+    src: url('@/assets/Fonts/Fraunces,Playfair_Display/Playfair_Display/PlayfairDisplay-VariableFont_wght.ttf') format('truetype');
+    font-weight: 100 900;
+    font-style: normal;
     font-display: swap;
   }
   
@@ -108,12 +109,12 @@
     flex: 1;
     background: none;
     border: none;
-    outline: none;
+    
     font-size: 16px;
     font-weight: 600;
     color: var(--Muted-Olive);
     padding: 12px 0 8px 0;
-    cursor: pointer;
+    
     border-bottom: 2px solid transparent;
     font-family: 'Nunito';
     line-height: normal;

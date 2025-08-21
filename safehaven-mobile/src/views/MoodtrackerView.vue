@@ -39,13 +39,11 @@
 import { ref, onMounted, computed } from 'vue'
 import { useMoodStore } from '../stores/moods'
 
-import {
-  MoodGreeting,
-  DateSelector,
-  MoodOfDay,
-  HistorySection,
-  MoodModal
-} from '../components/Mood'
+import MoodGreeting from '../components/Mood/MoodGreeting.vue'
+import DateSelector from '../components/Mood/DateSelector.vue'
+import MoodOfDay from '../components/Mood/MoodOfDay.vue'
+import HistorySection from '../components/Mood/HistorySection.vue'
+import MoodModal from '../components/Mood/MoodModal.vue'
 
 // Store
 const moodStore = useMoodStore()

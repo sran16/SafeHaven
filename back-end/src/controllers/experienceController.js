@@ -1,19 +1,43 @@
 import experienceService from '../services/experienceService.js';
 import answerService from '../services/answerService.js';
+import moderationService from '../services/moderationService.js';
 import { successResponse, errorResponse } from '../utils/responses.js';
-import { PrismaClient } from '@prisma/client';
-
-const prisma = new PrismaClient();
+import prisma from '../config/database.js';
 
 class ExperienceController {
     async createExperience(req, res) {
         try {
-            console.log('Creating experience with user:', req.user);
             const experienceData = {
                 ...req.body,
                 userId: req.user.id_user
             };
-            const experience = await experienceService.createExperience(experienceData);
+
+            //  ANALYSE DE MODÉRATION AVEC BLOCAGE
+            let experience;
+            try {
+                const moderationResult = await moderationService.moderateExperience(experienceData);
+                
+                            // SI CONTENU BLOQUÉ
+            if (moderationResult.blocked) {
+                // RETOURNER L'ERREUR AVEC LE MESSAGE DE WARNING
+                    return res.status(400).json({
+                        success: false,
+                        message: 'Contenu non autorisé',
+                        data: {
+                            blocked: true,
+                            warning: moderationResult.warningMessage
+                        }
+                    });
+                }
+
+                            // CONTENU APPROUVÉ - Publication normale
+                experience = await experienceService.createExperience(experienceData);
+                
+            } catch (moderationError) {
+                // En cas d'erreur de modération, on publie quand même (mode dégradé)
+                experience = await experienceService.createExperience(experienceData);
+            }
+            
             return successResponse(res, 201, 'Experience created successfully', experience);
         } catch (error) {
             console.error('Error creating experience:', error);
@@ -23,9 +47,9 @@ class ExperienceController {
 
     async getExperiences(req, res) {
         try {
-            console.log('Début de la récupération des expériences');
+            
             const experiences = await experienceService.getAllExperiences();
-            console.log('Expériences récupérées avec succès:', experiences.length);
+            
             return successResponse(res, 200, 'Experiences retrieved successfully', experiences);
         } catch (error) {
             console.error('Erreur détaillée dans getExperiences:', {
@@ -39,10 +63,10 @@ class ExperienceController {
 
     async getUserExperiences(req, res) {
         try {
-            console.log('Début de la récupération des expériences de l\'utilisateur');
+            
             const userId = req.user.id_user;
             const experiences = await experienceService.getExperiencesByUserId(userId);
-            console.log('Expériences de l\'utilisateur récupérées avec succès:', experiences.length);
+            
             return successResponse(res, 200, 'User experiences retrieved successfully', experiences);
         } catch (error) {
             console.error('Erreur détaillée dans getUserExperiences:', {
@@ -75,11 +99,12 @@ class ExperienceController {
         try {
             const experienceId = parseInt(req.params.id);
             const userId = req.user.id_user;
-            
-            console.log(`User ${userId} toggling like for experience ${experienceId}`);
-            
-            const result = await experienceService.toggleLike(experienceId, userId);
-            return successResponse(res, 200, 'Experience like toggled successfully', result);
+            const isDelete = req.method === 'DELETE';
+            const result = isDelete
+                ? await experienceService.unlike(experienceId, userId)
+                : await experienceService.like(experienceId, userId);
+            const message = isDelete ? 'Experience unliked successfully' : 'Experience liked successfully';
+            return successResponse(res, 200, message, result);
         } catch (error) {
             console.error('Error toggling experience like:', error);
             return errorResponse(res, 500, error.message);
@@ -92,7 +117,7 @@ class ExperienceController {
             const { content } = req.body;
             const userId = req.user.id_user;
             
-            console.log(`User ${userId} commenting on experience ${experienceId}:`, content);
+            
             
             const comment = await answerService.createAnswer({
                 content,

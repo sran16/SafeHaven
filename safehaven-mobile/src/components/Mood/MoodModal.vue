@@ -152,7 +152,7 @@ watch(() => props.isOpen, (newValue) => {
   background: var(--background);
   border: 2px solid transparent;
   border-radius: var(--border-radius);
-  cursor: pointer;
+  
   transition: all 0.2s ease;
 }
 
@@ -202,6 +202,8 @@ watch(() => props.isOpen, (newValue) => {
 
 .notes-section textarea:focus {
   outline: none;
+  box-shadow: 0 0 0 2px rgba(107, 138, 130, 0.2);
+  
   border-color: var(--primary);
   background-color: white;
 }
@@ -220,7 +222,7 @@ watch(() => props.isOpen, (newValue) => {
   border-radius: var(--border-radius);
   font-weight: 500;
   font-size: 14px;
-  cursor: pointer;
+  
   transition: all 0.2s ease;
 }
 
@@ -235,7 +237,7 @@ watch(() => props.isOpen, (newValue) => {
   border-radius: var(--border-radius);
   font-weight: 500;
   font-size: 14px;
-  cursor: pointer;
+  
   transition: all 0.2s ease;
 }
 
@@ -243,7 +245,7 @@ watch(() => props.isOpen, (newValue) => {
 
 .save-btn:disabled {
   background-color: var(--text-secondary);
-  cursor: not-allowed;
+
   transform: none;
 }
 

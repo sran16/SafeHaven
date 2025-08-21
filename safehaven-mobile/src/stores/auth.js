@@ -34,24 +34,24 @@ export const useAuthStore = defineStore('auth', () => {
     try {
       isLoading.value = true
       error.value = null
-      console.log('Tentative de connexion avec:', { name });
+      
       
       const apiUrl = getApiUrl();
-      console.log('URL API utilisée pour connexion:', apiUrl);
+      
       
       // Effectuer la requête de connexion
-      const response = await axios.post(`${apiUrl}/api/users/login`, 
+      const response = await axios.post(`${apiUrl}/api/users/sessions`, 
         { name, password }, 
         getAuthHeaders()
       );
       
-      console.log('Réponse de connexion:', response.data);
+      
       
       if (response.data.success) {
         const userData = response.data.data.user;
         const token = response.data.data.token;
         
-        console.log('Données utilisateur:', userData);
+        
         
         setToken(token)
         setUser({
@@ -84,24 +84,24 @@ export const useAuthStore = defineStore('auth', () => {
     try {
       isLoading.value = true
       error.value = null
-      console.log('Tentative d\'inscription avec:', { name, email });
+      
       
       const apiUrl = getApiUrl();
-      console.log('URL API utilisée pour inscription:', apiUrl);
+      
       
       // Effectuer la requête d'inscription
-      const response = await axios.post(`${apiUrl}/api/users/register`, 
+      const response = await axios.post(`${apiUrl}/api/users`, 
         { name, email, password }, 
         getAuthHeaders()
       );
       
-      console.log('Réponse d\'inscription:', response.data);
+      
       
       if (response.data.success) {
         const userData = response.data.data.user;
         const token = response.data.data.token;
         
-        console.log('Données utilisateur:', userData);
+        
         
         setToken(token)
         setUser({
@@ -133,7 +133,7 @@ export const useAuthStore = defineStore('auth', () => {
   const logout = async () => {
     try {
       const apiUrl = getApiUrl();
-      await axios.post(`${apiUrl}/api/users/logout`, {}, getAuthHeaders())
+      await axios.delete(`${apiUrl}/api/users/sessions/current`, getAuthHeaders())
     } catch (error) {
       console.error('Erreur lors de la déconnexion:', error)
     } finally {
@@ -146,7 +146,7 @@ export const useAuthStore = defineStore('auth', () => {
   const fetchUser = async () => {
     try {
       const apiUrl = getApiUrl();
-      const response = await axios.get(`${apiUrl}/api/users/profile`, getAuthHeaders())
+      const response = await axios.get(`${apiUrl}/api/users/me`, getAuthHeaders())
       setUser({
         id: response.data.id_user,
         name: response.data.name

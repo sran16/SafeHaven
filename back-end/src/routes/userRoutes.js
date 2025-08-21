@@ -1,19 +1,23 @@
 import express from 'express';
 import userController from '../controllers/userController.js';
 import authMiddleware from '../middlewares/authMiddleware.js';
+// Accès aux expériences de l'utilisateur courant
+import experienceController from '../controllers/experienceController.js';
+import { validateBody, schemas } from '../middlewares/validation.js';
 
 const router = express.Router();
 
-// Routes publiques
-router.post('/register', userController.register);
-router.post('/login', userController.login);
+// Routes publiques 
+router.post('/', validateBody(schemas.auth.register), userController.register);
+router.post('/sessions', validateBody(schemas.auth.login), userController.login);
 
-// Routes protégées
+// Routes protégées 
 router.use(authMiddleware);
-router.post('/logout', userController.logout);
-router.get('/profile', userController.getProfile);
-router.put('/profile', userController.updateProfile);
-router.get('/verify-token', userController.verifyToken);
-router.put('/change-password', userController.changePassword);
+router.delete('/sessions/current', userController.logout); 
+router.get('/me', userController.getProfile); 
+router.put('/me', validateBody(schemas.user.updateProfile), userController.updateProfile);
+router.get('/session', userController.verifyToken); 
+router.put('/me/password', userController.changePassword); 
+router.get('/me/experiences', experienceController.getUserExperiences); 
 
 export default router;

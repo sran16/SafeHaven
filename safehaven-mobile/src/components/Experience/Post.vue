@@ -8,7 +8,6 @@
       <!-- Contenu principal -->
       <div class="post-content">
         <p class="post-text">{{ post.content }}</p>
-        <button class="read-more">Lire la suite</button>
       </div>
       
       <!-- Séparateur -->
@@ -98,7 +97,7 @@ const fetchPosts = async () => {
       }
     })
     
-    console.log('Réponse des expériences:', response.data)
+    
     if (response.data.success) {
       posts.value = response.data.data.map(post => ({
         ...post,
@@ -129,13 +128,20 @@ const likePost = async (postId) => {
     }
 
     const apiUrl = getApiUrl();
-    const response = await axios.post(`${apiUrl}/api/experiences/${postId}/like`, {}, {
-      headers: {
-        'Authorization': `Bearer ${token}`
-      }
-    })
-    
     const post = posts.value.find(p => p.id_experience === postId)
+    let response
+    if (post?.isLiked) {
+      // UNLIKE → DELETE
+      response = await axios.delete(`${apiUrl}/api/experiences/${postId}/likes`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      })
+    } else {
+      // LIKE → PUT (idempotent)
+      response = await axios.put(`${apiUrl}/api/experiences/${postId}/likes`, {}, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      })
+    }
+    
     if (post && response.data.success) {
       post.isLiked = response.data.data.isLiked
       post.likes = response.data.data.likes
@@ -177,7 +183,7 @@ const addComment = async (post) => {
       }
     )
 
-    console.log('Réponse du serveur:', response.data)
+    
     if (response.data.success) {
       const newComment = {
         id: response.data.data.id,
@@ -194,8 +200,7 @@ const addComment = async (post) => {
       // Ajouter le nouveau commentaire au début du tableau
       post.comments = [newComment, ...post.comments]
       
-      console.log('Commentaire ajouté:', newComment)
-      console.log('Liste des commentaires mise à jour:', post.comments)
+      
     }
   } catch (error) {
     console.error('Erreur lors de l\'ajout du commentaire:', error)
@@ -221,13 +226,7 @@ const formatDate = (date) => {
 onMounted(() => {
   // Test de l'API sans authentification
   const apiUrl = getApiUrl();
-  axios.get(`${apiUrl}/api/test`)
-    .then(response => {
-      console.log('Test API réussi:', response.data)
-    })
-    .catch(error => {
-      console.error('Erreur lors du test API:', error)
-    })
+  axios.get(`${apiUrl}/api/test`).catch(() => {})
     
   fetchPosts()
 })
@@ -255,21 +254,7 @@ onMounted(() => {
   white-space: pre-line; 
 }
 
-.read-more {
-  background: none;
-  border: none;
-  color: var(--text-primary);
-  font-size: 14px;
-  text-align: right;
-  width: 100%;
-  cursor: pointer;
-  padding: 0;
-  margin: 0;
-}
 
-.read-more:hover {
-  text-decoration: underline;
-}
 
 .separator {
   height: 1px;
@@ -312,7 +297,7 @@ onMounted(() => {
   display: flex;
   align-items: center;
   gap: 4px;
-  cursor: pointer;
+
 }
 
 .engagement-icon {
@@ -384,12 +369,16 @@ onMounted(() => {
   border-radius: 8px;
   font-size: 14px;
   background-color: var(--light-ivory);
-  outline: none;
+
   transition: border-color 0.2s;
 }
 
 .comment-input:focus {
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(107, 138, 130, 0.2);
   border-color: var(--primary);
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(107, 138, 130, 0.2);
 }
 
 .comment-input::placeholder {
@@ -404,14 +393,12 @@ onMounted(() => {
   border-radius: 8px;
   font-size: 14px;
   font-weight: 500;
-  cursor: pointer;
+
   transition: background-color 0.2s;
   white-space: nowrap;
 }
 
-.comment-btn:hover {
-  background-color: #6B8A82;
-}
+
 
 .comment-btn:active {
   transform: translateY(1px);

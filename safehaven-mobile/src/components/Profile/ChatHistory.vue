@@ -1,8 +1,8 @@
 <template>
   <div class="chat-tab">
-    <div v-if="loading" class="loading-state"><div class="loading-spinner"></div><p>Chargement de l'historique...</p></div>
-    <div v-else-if="error" class="error-state"><p>{{ error }}</p><button class="retry-btn" @click="$emit('retry')">Réessayer</button></div>
-    <div v-else-if="!messages || messages.length===0" class="empty-state"><p>Aucune conversation</p><button class="start-chat-btn" @click="$emit('start')">Commencer</button></div>
+    <div v-if="loading" class="loading-state"><div class="loading-spinner"></div><p>Loading history...</p></div>
+    <div v-else-if="error" class="error-state"><p>{{ error }}</p><button class="retry-btn" @click="$emit('retry')">Retry</button></div>
+    <div v-else-if="!messages || messages.length===0" class="empty-state"><p>No conversations yet</p><button class="start-chat-btn" @click="$emit('start')">Start chatting</button></div>
     <div v-else class="chat-sessions">
       <div v-for="group in messages" :key="group.date" class="date-group">
         <div class="date-header">{{ formatDate(group.date) }}</div>
@@ -39,8 +39,8 @@ const formatTime=(d)=> new Date(d).toLocaleString('fr-FR',{day:'numeric',month:'
 .chat-sessions{display:flex;flex-direction:column;gap:16px}
 .date-group{border-bottom:1px solid rgba(124,126,115,.1);padding-bottom:16px}
 .date-header{color:var(--Muted-Olive,#7C7E73);font-size:16px;font-weight:500;margin-bottom:12px}
-.session-item{padding:12px;border-radius:8px;cursor:pointer;transition:all .2s;margin-bottom:8px}
-.session-item:hover{background:rgba(124,126,115,.05)}
+.session-item{padding:12px;border-radius:8px;transition:all .2s;margin-bottom:8px}
+
 .session-item.active{background:var(--Muted-Olive,#7C7E73);color:#fff}
 .session-message{font-size:14px;color:inherit}
 .session-details{background:#fff;border:1px solid rgba(124,126,115,.1);border-radius:12px;margin-top:16px}

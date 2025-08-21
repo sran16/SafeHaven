@@ -18,6 +18,7 @@ model Users {
   experiences       Experiences[]
   moods             Moods[]
   logs              UserLogs[]
+  activeSessions    ActiveSessions[]
 
   @@index([email])
   @@index([registration_Date])
@@ -155,4 +156,20 @@ model ModerationLogs {
   moderator    Moderateurs  @relation(fields: [moderatorId], references: [id_moderateur], onDelete: Cascade)
 
   @@index([timestamp])
+}
+
+model ActiveSessions {
+  id          String   @id @default(cuid())
+  token       String   @unique
+  userId      Int
+  user        Users    @relation(fields: [userId], references: [id_user], onDelete: Cascade)
+  createdAt   DateTime @default(now())
+  expiresAt   DateTime
+  isActive    Boolean  @default(true)
+  deviceInfo  String?  
+  
+  @@index([userId])
+  @@index([token])
+  @@index([expiresAt])
+  @@index([isActive])
 }

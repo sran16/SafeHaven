@@ -65,11 +65,13 @@
     padding: 10px 12px;
     font-size: 16px;
     color: var(--text-primary);
-    outline: none;
+    
     transition: border 0.2s;
   }
   
   input:focus {
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(107, 138, 130, 0.2);
     border: 1.5px solid var(--Muted-Olive);
   }
   
@@ -85,7 +87,7 @@
     line-height: normal;
     font-family: 'Nunito';
     font-style: normal;
-    cursor: pointer;
+    
     width: 61%;
     transition: background 0.2s;
   }

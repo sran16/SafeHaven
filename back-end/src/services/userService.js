@@ -1,9 +1,7 @@
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
 import prisma from '../config/database.js';
-import dotenv from 'dotenv';
 
-dotenv.config();
 
 class UserService {
     async createUser(userData) {
@@ -75,6 +73,22 @@ class UserService {
             { expiresIn: '24h' }
         );
 
+        // Calculer la date d'expiration (24h)
+        const expiresAt = new Date();
+        expiresAt.setHours(expiresAt.getHours() + 24);
+
+        // Créer une session active
+        await prisma.activeSessions.create({
+            data: {
+                token: token,
+                userId: user.id_user,
+                expiresAt: expiresAt,
+                isActive: true
+            }
+        });
+
+
+
         return {
             user: {
                 id_user: user.id_user,
@@ -84,10 +98,31 @@ class UserService {
         };
     }
 
-    async logoutUser(userId) {
-        // Pour une déconnexion côté serveur, on pourrait gérer une liste noire de tokens
-        // Pour l'instant, la déconnexion est gérée côté client
-        return true;
+    async logoutUser(userId, sessionId = null) {
+        try {
+            if (sessionId) {
+                // Désactiver une session spécifique
+                await prisma.activeSessions.update({
+                    where: { id: sessionId },
+                    data: { isActive: false }
+                });
+
+            } else {
+                // Désactiver toutes les sessions de l'utilisateur
+                await prisma.activeSessions.updateMany({
+                    where: { 
+                        userId: userId,
+                        isActive: true 
+                    },
+                    data: { isActive: false }
+                });
+
+            }
+            return true;
+        } catch (error) {
+            console.error('Erreur lors de la déconnexion:', error);
+            throw new Error('Erreur lors de la déconnexion');
+        }
     }
 
     async getUserProfile(userId) {
@@ -110,12 +145,20 @@ class UserService {
     }
 
     async updateUserProfile(userId, userData) {
-        const { name } = userData;
+        // Mapper les champs du frontend vers la base de données
+        const mappedData = {};
+        
+        if (userData.username) {
+            mappedData.name = userData.username;
+        }
+        
+        // Note: 'bio' n'existe pas dans le schéma Users, on l'ignore
 
-        if (name) {
+        // Vérifier si le nom d'utilisateur est déjà pris
+        if (mappedData.name) {
             const existingUser = await prisma.users.findFirst({
                 where: {
-                    name,
+                    name: mappedData.name,
                     NOT: {
                         id_user: userId
                     }
@@ -129,11 +172,11 @@ class UserService {
 
         return prisma.users.update({
             where: { id_user: userId },
-            data: userData,
+            data: mappedData,
             select: {
                 id_user: true,
                 name: true,
-                createdAt: true
+                registration_Date: true
             }
         });
     }
@@ -160,6 +203,43 @@ class UserService {
         });
 
         return true;
+    }
+
+    // Fonction de nettoyage des sessions expirées
+    async cleanupExpiredSessions() {
+        try {
+            const result = await prisma.activeSessions.deleteMany({
+                where: {
+                    OR: [
+                        { expiresAt: { lt: new Date() } },
+                        { isActive: false }
+                    ]
+                }
+            });
+
+            return result.count;
+        } catch (error) {
+            console.error('Erreur lors du nettoyage des sessions:', error);
+            return 0;
+        }
+    }
+
+    // Fonction pour obtenir les sessions actives d'un utilisateur
+    async getUserActiveSessions(userId) {
+        return await prisma.activeSessions.findMany({
+            where: {
+                userId: userId,
+                isActive: true,
+                expiresAt: { gt: new Date() }
+            },
+            select: {
+                id: true,
+                createdAt: true,
+                expiresAt: true,
+                deviceInfo: true
+            },
+            orderBy: { createdAt: 'desc' }
+        });
     }
 }
 

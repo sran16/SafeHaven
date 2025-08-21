@@ -42,8 +42,8 @@
               </template>
               <template #empty>
                 <div class="empty-state">
-                  <p>Vous n'avez pas encore de publications</p>
-                  <button @click="$router.push('/create-post')" class="create-post-btn">Créer une publication</button>
+                  <p>You don't have any posts yet</p>
+                  <button @click="$router.push('/home')" class="create-post-btn">Create an experience</button>
                 </div>
               </template>
             </PostsList>
@@ -53,18 +53,18 @@
           <div v-else-if="currentTab === 'mood'" class="mood-tab">
             <div v-if="loadingMood" class="loading-state">
               <div class="loading-spinner"></div>
-              <p>Chargement des données de mood...</p>
+              <p>Loading mood data...</p>
             </div>
             
             <div v-else-if="moodError" class="error-state">
               <p>{{ moodError }}</p>
-              <button @click="fetchMoodData" class="retry-btn">Réessayer</button>
+              <button @click="fetchMoodData" class="retry-btn">Retry</button>
             </div>
             
             <div v-else-if="moodData.length === 0" class="empty-state">
-              <p>Vous n'avez pas encore enregistré de mood</p>
+              <p>You haven't recorded any mood yet</p>
               <button @click="$router.push('/mood')" class="start-tracking-btn">
-                Commencer le suivi
+                Start tracking
               </button>
             </div>
             
@@ -208,20 +208,24 @@ const handleTabChange=(tab)=>{
   else if(tab==='overview') fetchOverview()
 }
 
-const fetchUserPosts=async()=>{try{loadingPosts.value=true;const apiUrl=getApiUrl();const res=await axios.get(`${apiUrl}/api/experiences/user`,getAuthHeaders());if(res.data.success){userPosts.value=res.data.data.map(p=>({...p,comments:p.comments||[]}))}}catch(e){if(e.response?.status===401)router.push('/login')}finally{loadingPosts.value=false}}
+const fetchUserPosts=async()=>{try{loadingPosts.value=true;const apiUrl=getApiUrl();const res=await axios.get(`${apiUrl}/api/users/me/experiences`,getAuthHeaders());if(res.data.success){userPosts.value=res.data.data.map(p=>({...p,comments:p.comments||[]}))}}catch(e){if(e.response?.status===401)router.push('/login')}finally{loadingPosts.value=false}}
 const fetchMoodData=async()=>{try{loadingMood.value=true;moodError.value=null;const apiUrl=getApiUrl();const res=await axios.get(`${apiUrl}/api/moods`,getAuthHeaders());moodData.value=res.data.data||[]}catch(e){moodError.value='Impossible de charger les données de mood'}finally{loadingMood.value=false}}
-const fetchChatHistory=async()=>{try{loadingChat.value=true;chatError.value=null;const apiUrl=getApiUrl();const res=await axios.get(`${apiUrl}/api/chat/history`,getAuthHeaders());if(res.data&&res.data.success){chatMessages.value=res.data.data}else{chatError.value='Impossible de récupérer l\'historique du chat'}}catch(e){chatError.value='Une erreur est survenue lors de la récupération de l\'historique du chat'}finally{loadingChat.value=false}}
+const fetchChatHistory=async()=>{try{loadingChat.value=true;chatError.value=null;const apiUrl=getApiUrl();const res=await axios.get(`${apiUrl}/api/chat/sessions`,getAuthHeaders());if(res.data&&res.data.success){chatMessages.value=res.data.data}else{chatError.value='Impossible de récupérer l\'historique du chat'}}catch(e){chatError.value='Une erreur est survenue lors de la récupération de l\'historique du chat'}finally{loadingChat.value=false}}
 const sessionReports = ref([])
 const loadingOverview = ref(false)
-const fetchOverview = async()=>{try{loadingOverview.value=true;overviewError.value=null;const apiUrl=getApiUrl();const res=await axios.get(`${apiUrl}/api/chat/session-reports`,getAuthHeaders());if(res.data&&res.data.success){sessionReports.value = res.data.data.reports || res.data.data || []}else{overviewError.value='Impossible de charger les rapports'}}catch(e){overviewError.value='Erreur lors du chargement des rapports'}finally{loadingOverview.value=false}}
-const fetchUserData=async()=>{try{const apiUrl=getApiUrl();const res=await axios.get(`${apiUrl}/api/users/profile`,getAuthHeaders());if(res.data.success){user.value=res.data.data;editForm.value.username=user.value.username||user.value.name;editForm.value.bio=user.value.bio||''}}catch(e){}}
-const updateProfile=async()=>{try{const apiUrl=getApiUrl();await axios.put(`${apiUrl}/api/users/profile`,editForm.value,getAuthHeaders());user.value.username=editForm.value.username;showEditProfile.value=false}catch(e){}}
+const fetchOverview = async()=>{try{loadingOverview.value=true;overviewError.value=null;const apiUrl=getApiUrl();const res=await axios.get(`${apiUrl}/api/chat/sessions/reports`,getAuthHeaders());if(res.data&&res.data.success){sessionReports.value = res.data.data.reports || res.data.data || []}else{overviewError.value='Impossible de charger les rapports'}}catch(e){overviewError.value='Erreur lors du chargement des rapports'}finally{loadingOverview.value=false}}
+const fetchUserData=async()=>{try{const apiUrl=getApiUrl();const res=await axios.get(`${apiUrl}/api/users/me`,getAuthHeaders());if(res.data.success){user.value=res.data.data;editForm.value.username=user.value.username||user.value.name;editForm.value.bio=user.value.bio||''}}catch(e){}}
+const updateProfile=async()=>{try{const apiUrl=getApiUrl();await axios.put(`${apiUrl}/api/users/me`,editForm.value,getAuthHeaders());user.value.username=editForm.value.username;showEditProfile.value=false}catch(e){}}
 const handleLogout=()=>{localStorage.removeItem('token');localStorage.removeItem('user');router.push('/login')}
 
 onMounted(async()=>{await fetchUserData();await fetchUserPosts()})
 </script>
 
 <style scoped>
+#app.with-nav {
+  padding-bottom: 0px; 
+}
+
 .chatbot-bg {
   min-height: 100vh;
   width: 100vw;
@@ -232,6 +236,7 @@ onMounted(async()=>{await fetchUserData();await fetchUserPosts()})
   align-items: flex-start;
   justify-content: flex-start;
   padding-top: 40px;
+  padding-bottom: 80px;
 }
 
 .profile-container {
@@ -288,7 +293,7 @@ onMounted(async()=>{await fetchUserData();await fetchUserPosts()})
   color: var(--text-secondary);
   font-size: 14px;
   font-weight: 500;
-  cursor: pointer;
+
   transition: all 0.2s ease;
   position: relative;
 }
@@ -336,14 +341,12 @@ onMounted(async()=>{await fetchUserData();await fetchUserPosts()})
 .session-item {
   padding: 12px;
   border-radius: 8px;
-  cursor: pointer;
+
   transition: all 0.2s ease;
   margin-bottom: 8px;
 }
 
-.session-item:hover {
-  background: rgba(124, 126, 115, 0.05);
-}
+
 
 .session-item.active {
   background: var(--Muted-Olive, #7C7E73);
@@ -382,7 +385,7 @@ onMounted(async()=>{await fetchUserData();await fetchUserPosts()})
   border: none;
   font-size: 20px;
   color: var(--text-secondary);
-  cursor: pointer;
+
   padding: 4px;
 }
 
@@ -460,17 +463,12 @@ onMounted(async()=>{await fetchUserData();await fetchUserPosts()})
   padding: 12px 20px;
   font-size: 14px;
   font-weight: 500;
-  cursor: pointer;
+
   margin-top: 16px;
   transition: all 0.2s ease;
 }
 
-.create-post-btn:hover,
-.start-tracking-btn:hover,
-.start-chat-btn:hover,
-.retry-btn:hover {
-  background: #6b6d63;
-}
+
 
 /* Modal */
 .modal {
@@ -511,7 +509,7 @@ onMounted(async()=>{await fetchUserData();await fetchUserPosts()})
   border: none;
   font-size: 24px;
   color: var(--text-secondary);
-  cursor: pointer;
+
   padding: 4px;
 }
 
@@ -545,7 +543,10 @@ onMounted(async()=>{await fetchUserData();await fetchUserPosts()})
 .form-group input:focus,
 .form-group textarea:focus {
   outline: none;
+  box-shadow: 0 0 0 2px rgba(107, 138, 130, 0.2);
+  outline: none;
   border-color: var(--Muted-Olive, #7C7E73);
+  box-shadow: 0 0 0 2px rgba(124, 126, 115, 0.2);
 }
 
 .form-actions {
@@ -561,7 +562,7 @@ onMounted(async()=>{await fetchUserData();await fetchUserPosts()})
   border-radius: 8px;
   font-size: 14px;
   font-weight: 500;
-  cursor: pointer;
+
   border: none;
   transition: all 0.2s ease;
 }
@@ -576,13 +577,7 @@ onMounted(async()=>{await fetchUserData();await fetchUserPosts()})
   color: white;
 }
 
-.cancel-btn:hover {
-  background: rgba(124, 126, 115, 0.2);
-}
 
-.save-btn:hover {
-  background: #6b6d63;
-}
 
 @keyframes slideUp {
   from { transform: translateY(100%); }

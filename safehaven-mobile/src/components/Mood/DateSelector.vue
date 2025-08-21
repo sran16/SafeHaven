@@ -69,7 +69,7 @@ const selectDay = (date) => {
   align-items: center;
   gap: 4px;
   padding: 8px;
-  cursor: pointer;
+  
   transition: all 0.2s ease;
   min-width: 40px;
 }

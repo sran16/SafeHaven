@@ -19,12 +19,10 @@ export const getApiUrl = () => {
   
   // Vérifier si on est dans un environnement iOS
   if (isIOSEnvironment()) {
-    console.log('Environnement iOS détecté, utilisation de l\'adresse IP locale');
     // Sur iOS, il est préférable d'utiliser l'adresse IP directe plutôt que localhost
     return "http://127.0.0.1:3000";
   }
   
-  console.log('API URL utilisée:', apiUrl);
   return apiUrl;
 };
 
@@ -36,7 +34,7 @@ export const getAuthHeaders = () => {
   
   // Validation complète du token (format + expiration)
   if (token && !isTokenValid(token)) {
-    console.warn('Token invalide ou expiré détecté');
+    // token invalide/expiré détecté
   }
   
   return {

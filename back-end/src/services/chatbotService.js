@@ -1,5 +1,4 @@
-import { PrismaClient } from '@prisma/client';
-const prisma = new PrismaClient();
+import prisma from '../config/database.js';
 
 class ChatbotService {
     // Récupère la session active du jour pour un utilisateur

@@ -241,7 +241,7 @@ Your unique goal: maintain a brief and natural conversation, like through text m
 
     async endSession(req, res) {
         try {
-            const session = await chatbotService.endSession(req.user.id);
+            const session = await chatbotService.endSession(req.user.id_user);
             return successResponse(res, 200, 'Session ended successfully', session);
         } catch (error) {
             return errorResponse(res, 400, error.message);
@@ -253,14 +253,13 @@ Your unique goal: maintain a brief and natural conversation, like through text m
             const { message } = req.body;
             // Utiliser l'ID utilisateur à partir du token d'authentification
             const userId = req.user.id_user;
-            console.log('Process message - Message reçu:', message);
-            console.log('Process message - ID utilisateur:', userId);
+            
 
             // Vérifier si une session active existe
             try {
                 const activeSession = await chatbotService.getActiveSession(userId);
                 if (!activeSession) {
-                    console.log('Aucune session active trouvée, création automatique');
+                    
                     await chatbotService.createSession(userId);
                 }
             } catch (sessionError) {
@@ -270,10 +269,10 @@ Your unique goal: maintain a brief and natural conversation, like through text m
 
             // Analyser le message pour détecter la détresse
             const analysis = this.detectDistressAndEmergency(message);
-            console.log('Analyse du message:', analysis);
+            
 
             if (!this.MISTRAL_API_KEY) {
-                console.log('Clé API Mistral non configurée, utilisation du mode fallback');
+                
                 const response = {
                     response: "Je suis là pour vous écouter et vous soutenir. Comment puis-je vous aider aujourd'hui ?"
                 };
@@ -289,7 +288,7 @@ Your unique goal: maintain a brief and natural conversation, like through text m
             
             // Détecter la langue de la conversation
             const conversationLanguage = this.detectConversationLanguage(message, conversationHistory);
-            console.log('Langue détectée pour la conversation:', conversationLanguage);
+            
             
             // Créer un prompt système adapté à la langue
             const languageSpecificPrompt = this.createLanguageSpecificPrompt(conversationLanguage);
@@ -316,7 +315,7 @@ Your unique goal: maintain a brief and natural conversation, like through text m
                 // Ajouter le message actuel
                 messages.push({ role: "user", content: message });
                 
-                console.log('Messages envoyés à l\'API Mistral:', messages);
+                
                 
                 const response = await fetch(this.MISTRAL_API_URL, {
                     method: 'POST',
@@ -348,7 +347,7 @@ Your unique goal: maintain a brief and natural conversation, like through text m
                     const sessionReport = await this.generateSessionReport(session.id_session, message, aiResponse, conversationLanguage);
                     await chatbotService.saveSessionReport(session.id_session, sessionReport);
                     
-                    console.log('Rapport de session généré et sauvegardé');
+                    
                 } catch (saveError) {
                     console.error('Erreur lors de la sauvegarde de la conversation ou du rapport:', saveError);
                 }
@@ -385,7 +384,7 @@ Your unique goal: maintain a brief and natural conversation, like through text m
     async getConversationHistory(req, res) {
         try {
             const userId = req.user.id_user;
-            console.log('Récupération de l\'historique pour l\'utilisateur:', userId);
+            
             
             const sessions = await chatbotService.getConversationHistory(userId);
             
@@ -439,7 +438,7 @@ Your unique goal: maintain a brief and natural conversation, like through text m
 
     async getSentimentAnalysis(req, res) {
         try {
-            const analysis = await chatbotService.getSentimentAnalysis(req.user.id);
+            const analysis = await chatbotService.getSentimentAnalysis(req.user.id_user);
             return successResponse(res, 200, 'Sentiment analysis retrieved successfully', analysis);
         } catch (error) {
             return errorResponse(res, 400, error.message);
@@ -448,7 +447,7 @@ Your unique goal: maintain a brief and natural conversation, like through text m
 
     async getRecommendations(req, res) {
         try {
-            const recommendations = await chatbotService.getRecommendations(req.user.id);
+            const recommendations = await chatbotService.getRecommendations(req.user.id_user);
             return successResponse(res, 200, 'Recommendations retrieved successfully', recommendations);
         } catch (error) {
             return errorResponse(res, 400, error.message);
@@ -457,7 +456,7 @@ Your unique goal: maintain a brief and natural conversation, like through text m
 
     async generateReport(req, res) {
         try {
-            const report = await chatbotService.generateReport(req.user.id);
+            const report = await chatbotService.generateReport(req.user.id_user);
             return successResponse(res, 200, 'Report generated successfully', report);
         } catch (error) {
             return errorResponse(res, 400, error.message);

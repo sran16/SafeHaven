@@ -27,8 +27,6 @@ const formatDate=(d)=> new Date(d).toLocaleDateString('fr-FR',{day:'numeric',mon
 <style scoped>
 .posts-list .list{display:flex;flex-direction:column;gap:16px}
 .post-card { border:1px solid rgba(124,126,115,.1);border-radius:12px;padding:16px;transition:all .2s}
-.post-card:hover{box-shadow:0 4px 12px rgba(0,0,0,.05)}
-.post-text{color:var(--text-primary);font-size:16px;line-height:1.5;margin:0 0 12px}
 .post-meta{display:flex;justify-content:space-between;align-items:center;font-size:14px;color:var(--text-secondary)}
 .post-stats{display:flex;gap:12px}
 .loading-state,.empty-state{text-align:center;padding:20px;color:var(--text-secondary)}

@@ -2,17 +2,17 @@
   <div class="overview">
     <div v-if="loading" class="loading-state">
       <div class="loading-spinner"></div>
-      <p>Chargement du rapport émotionnel...</p>
+      <p>Loading emotional report...</p>
     </div>
 
     <div v-else-if="error" class="error-state">
       <p>{{ error }}</p>
-      <button class="retry-btn" @click="$emit('retry')">Réessayer</button>
+      <button class="retry-btn" @click="$emit('retry')">Retry</button>
     </div>
 
     <div v-else-if="!reports || reports.length === 0" class="empty-state">
-      <p>Aucun rapport encore disponible.</p>
-      <button class="start-chat-btn" @click="$emit('startChat')">Ouvrir une discussion</button>
+      <p>No reports available yet.</p>
+      <button class="start-chat-btn" @click="$emit('startChat')">Start a conversation</button>
     </div>
 
     <div v-else class="reports">

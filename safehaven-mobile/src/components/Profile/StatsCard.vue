@@ -48,7 +48,7 @@ const handleLogout = () => {
   font-size: 14px;
   font-weight: 500;
   border: none;
-  cursor: pointer;
+  
   transition: all 0.2s ease;
 }
 

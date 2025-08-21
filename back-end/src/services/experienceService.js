@@ -7,7 +7,7 @@ const likesCount = new Map(); // Map<experienceId, number>
 
 class ExperienceService {
     async createExperience(experienceData) {
-        console.log('Creating experience with data:', experienceData);
+        
         const experience = await prisma.experiences.create({
             data: {
                 content: experienceData.content,
@@ -111,6 +111,34 @@ class ExperienceService {
             isLiked: !isLiked,
             likes: likesCount.get(experienceId)
         };
+    }
+
+    // Idempotent like
+    async like(experienceId, userId) {
+        if (!likesStore.has(experienceId)) {
+            likesStore.set(experienceId, new Set());
+            likesCount.set(experienceId, 0);
+        }
+        const userLikes = likesStore.get(experienceId);
+        if (!userLikes.has(userId)) {
+            userLikes.add(userId);
+            likesCount.set(experienceId, (likesCount.get(experienceId) || 0) + 1);
+        }
+        return { isLiked: true, likes: likesCount.get(experienceId) };
+    }
+
+    // Idempotent unlike
+    async unlike(experienceId, userId) {
+        if (!likesStore.has(experienceId)) {
+            likesStore.set(experienceId, new Set());
+            likesCount.set(experienceId, 0);
+        }
+        const userLikes = likesStore.get(experienceId);
+        if (userLikes.has(userId)) {
+            userLikes.delete(userId);
+            likesCount.set(experienceId, Math.max(0, (likesCount.get(experienceId) || 0) - 1));
+        }
+        return { isLiked: false, likes: likesCount.get(experienceId) };
     }
 
     async getExperienceById(id) {

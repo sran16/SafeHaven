@@ -1,17 +1,12 @@
 import jwt from 'jsonwebtoken';
-import { PrismaClient } from '@prisma/client';
-import dotenv from 'dotenv';
+import prisma from '../config/database.js';
 
-dotenv.config();
-const prisma = new PrismaClient();
+// dotenv.config() est appelé dans server.js (point d'entrée principal)
 
 const authMiddleware = async (req, res, next) => {
   try {
     const authHeader = req.headers.authorization;
-    console.log('Auth header reçu:', authHeader);
-    
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      console.log('Header d\'authentification invalide ou manquant');
       return res.status(401).json({
         success: false,
         message: 'Token d\'authentification manquant'
@@ -19,25 +14,42 @@ const authMiddleware = async (req, res, next) => {
     }
 
     const token = authHeader.split(' ')[1];
-    console.log('Token extrait:', token);
-    
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    console.log('Token décodé:', decoded);
     
-    const user = await prisma.users.findUnique({
-      where: { id_user: decoded.userId }
+    // Vérifier si la session est active
+    const activeSession = await prisma.activeSessions.findUnique({
+      where: { token: token },
+      include: { user: true }
     });
 
-    if (!user) {
-      console.log('Utilisateur non trouvé pour l\'ID:', decoded.userId);
+    if (!activeSession) {
       return res.status(401).json({
         success: false,
-        message: 'Utilisateur non trouvé'
+        message: 'Session expirée ou invalide'
       });
     }
 
-    console.log('Utilisateur trouvé:', user);
-    req.user = user;
+    if (!activeSession.isActive) {
+      return res.status(401).json({
+        success: false,
+        message: 'Session fermée'
+      });
+    }
+
+    // Vérifier si la session n'est pas expirée
+    if (new Date() > activeSession.expiresAt) {
+      // Désactiver automatiquement la session expirée
+      await prisma.activeSessions.update({
+        where: { id: activeSession.id },
+        data: { isActive: false }
+      });
+      return res.status(401).json({
+        success: false,
+        message: 'Session expirée'
+      });
+    }
+    req.user = activeSession.user;
+    req.sessionId = activeSession.id; // Pour pouvoir gérer la session plus tard
     next();
   } catch (error) {
     console.error('Erreur d\'authentification détaillée:', error);

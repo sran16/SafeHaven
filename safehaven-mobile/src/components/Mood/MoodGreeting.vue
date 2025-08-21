@@ -76,7 +76,7 @@ margin-bottom: 16px;
   font-style: normal;
   font-weight: 500;
   line-height: normal;
-  cursor: pointer;
+  
   transition: all 0.2s ease;
 }
 

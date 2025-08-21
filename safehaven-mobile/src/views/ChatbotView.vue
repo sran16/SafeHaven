@@ -81,7 +81,7 @@ const sendMessage = async () => {
     }
 
     const userStr = localStorage.getItem('user')
-    console.log('Données utilisateur brutes:', userStr)
+    
     
     if (!userStr) {
       throw new Error('Session expirée, veuillez vous reconnecter')
@@ -90,7 +90,7 @@ const sendMessage = async () => {
     let user
     try {
       user = JSON.parse(userStr)
-      console.log('Données utilisateur parsées:', user)
+      
     } catch (e) {
       throw new Error('Erreur de session, veuillez vous reconnecter')
     }
@@ -103,15 +103,15 @@ const sendMessage = async () => {
     
     // Envoyer le message directement
     // Le middleware d'authentification sur le backend extraira l'identifiant utilisateur du token
-    console.log('URL complète pour chat message:', `${apiUrl}/api/chat/message`);
+    
     
     // Envoyer le message
-    const response = await axios.post(`${apiUrl}/api/chat/message`, 
+    const response = await axios.post(`${apiUrl}/api/chat/sessions/current/messages`, 
       { message: messageText },
       getAuthHeaders()
     )
 
-    console.log('Réponse du serveur:', response.data)
+    
     
     const botMessage = {
       text: response.data.data?.response || 'Désolé, je n\'ai pas compris votre message.',
@@ -157,7 +157,7 @@ onMounted(async () => {
   if (chatTimestamp) {
     try {
       const apiUrl = getApiUrl()
-      const response = await axios.get(`${apiUrl}/api/chat/history`, getAuthHeaders())
+      const response = await axios.get(`${apiUrl}/api/chat/sessions`, getAuthHeaders())
       
       if (response.data && response.data.success) {
         const historyText = response.data.data || ''
@@ -218,6 +218,8 @@ onUnmounted(() => {
 </script>
 
 <style scoped>
+
+
 .chatbot-bg {
   min-height: 100vh;
   width: 100vw;
@@ -288,7 +290,7 @@ onUnmounted(() => {
 .message-input {
   flex: 1;
   border: none;
-  outline: none;
+
   padding: 12px 16px;
   font-size: 16px;
   color: var(--text-primary);
@@ -310,8 +312,8 @@ onUnmounted(() => {
   border: none;
   padding: 0;
   margin: 0;
-  cursor: pointer;
-  outline: none;
+
+
 }
 
 
@@ -329,7 +331,5 @@ onUnmounted(() => {
   border-radius: 2px;
 }
 
-.chat-messages::-webkit-scrollbar-thumb:hover {
-  background: #B0B0B0;
-}
+
 </style>
