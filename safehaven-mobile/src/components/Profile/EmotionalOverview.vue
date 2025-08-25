@@ -57,7 +57,7 @@
 </template>
 
 <script setup>
-const props = defineProps({
+defineProps({
   reports: { type: Array, default: () => [] },
   loading: { type: Boolean, default: false },
   error: { type: String, default: null }

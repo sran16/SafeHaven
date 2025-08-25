@@ -1,7 +1,5 @@
 import { defineStore } from 'pinia'
-import { ref } from 'vue'
 import axios from 'axios'
-import { useAuthStore } from './auth'
 import { getApiUrl, getAuthHeaders } from '../utils/api'
 
 export const useMoodStore = defineStore('mood', {
@@ -16,7 +14,7 @@ export const useMoodStore = defineStore('mood', {
     async createMood(moodData) {
       try {
         this.loading = true
-        const apiUrl = getApiUrl();
+        const apiUrl = getApiUrl()
         const response = await axios.post(
           `${apiUrl}/api/moods`,
           { ...moodData },
@@ -39,7 +37,7 @@ export const useMoodStore = defineStore('mood', {
     async fetchMoods() {
       try {
         this.loading = true
-        const apiUrl = getApiUrl();
+        const apiUrl = getApiUrl()
         const response = await axios.get(`${apiUrl}/api/moods`, getAuthHeaders())
 
         if (response.data.success) {
@@ -61,7 +59,6 @@ export const useMoodStore = defineStore('mood', {
         const moodDate = new Date(mood.dateRegistration).toDateString()
         return moodDate === today
       })
-      
     }
   }
-}) 
+})

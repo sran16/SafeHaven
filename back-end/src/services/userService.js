@@ -5,7 +5,7 @@ import prisma from '../config/database.js';
 
 class UserService {
     async createUser(userData) {
-        console.log('Création d\'utilisateur avec les données:', userData);
+        // Création d'utilisateur
         
         const { name, email, password } = userData;
         
@@ -45,10 +45,13 @@ class UserService {
                 }
             });
             
-            console.log('Utilisateur créé avec succès:', user);
+            // Utilisateur créé avec succès
             return user;
         } catch (error) {
-            console.error('Erreur lors de la création de l\'utilisateur:', error);
+            // Log l'erreur en développement seulement
+            if (process.env.NODE_ENV === 'development') {
+                console.error('Erreur lors de la création de l\'utilisateur:', error);
+            }
             throw new Error('Erreur lors de la création de l\'utilisateur');
         }
     }
@@ -67,15 +70,17 @@ class UserService {
             throw new Error('Mot de passe incorrect');
         }
 
+        // Session mobile longue pour accessibilité en cas de détresse
+        const MOBILE_SESSION_DURATION = 24 * 60 * 60; // 24h en secondes
+        
         const token = jwt.sign(
             { userId: user.id_user },
             process.env.JWT_SECRET || 'votre_secret_jwt',
-            { expiresIn: '24h' }
+            { expiresIn: MOBILE_SESSION_DURATION }
         );
 
-        // Calculer la date d'expiration (24h)
-        const expiresAt = new Date();
-        expiresAt.setHours(expiresAt.getHours() + 24);
+        // Synchroniser l'expiration DB avec JWT
+        const expiresAt = new Date(Date.now() + MOBILE_SESSION_DURATION * 1000);
 
         // Créer une session active
         await prisma.activeSessions.create({

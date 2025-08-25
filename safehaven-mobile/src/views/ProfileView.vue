@@ -14,8 +14,6 @@
         <template #label>Posts</template>
       </StatsCard>
 
-
-
       <!-- Contenu principal avec tabs -->
       <div class="main-content">
         <div class="tabs-container">
@@ -183,22 +181,17 @@ const displayDate = computed(() => {
     if (raw && !isNaN(d.getTime())) {
       return d.toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })
     }
-  } catch {}
+  } catch {
+    // Erreur de formatage de date silencieuse
+  }
   return 'Date inconnue'
 })
 
-// Chat: sélection de session
-const selectedSession = ref(null)
-const selectSession = (session) => { selectedSession.value = session }
+// État pour la gestion des sessions (pour futures fonctionnalités)
 
-// Mood: emoji helper
-const moodEmoji = (type) => {
-  const map = { happy: '😊', calm: '😌', neutral: '😐', anxious: '😰', sad: '😢', angry: '😠' }
-  return map[type] || '🫧'
-}
+// Helpers pour l'affichage des données
 
-const formatDate=(d)=>{try{const dt=new Date(d);if(isNaN(dt.getTime()))return 'Date inconnue';return dt.toLocaleDateString('fr-FR',{day:'numeric',month:'long',year:'numeric'})}catch{return 'Date inconnue'}}
-const formatChatTime=(d)=>{try{const dt=new Date(d);if(isNaN(dt.getTime()))return '';return dt.toLocaleString('fr-FR',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'})}catch{return ''}}
+// Utilitaires de formatage intégrés dans les computed properties
 
 const handleTabChange=(tab)=>{
   currentTab.value=tab
@@ -208,17 +201,111 @@ const handleTabChange=(tab)=>{
   else if(tab==='overview') fetchOverview()
 }
 
-const fetchUserPosts=async()=>{try{loadingPosts.value=true;const apiUrl=getApiUrl();const res=await axios.get(`${apiUrl}/api/users/me/experiences`,getAuthHeaders());if(res.data.success){userPosts.value=res.data.data.map(p=>({...p,comments:p.comments||[]}))}}catch(e){if(e.response?.status===401)router.push('/login')}finally{loadingPosts.value=false}}
-const fetchMoodData=async()=>{try{loadingMood.value=true;moodError.value=null;const apiUrl=getApiUrl();const res=await axios.get(`${apiUrl}/api/moods`,getAuthHeaders());moodData.value=res.data.data||[]}catch(e){moodError.value='Impossible de charger les données de mood'}finally{loadingMood.value=false}}
-const fetchChatHistory=async()=>{try{loadingChat.value=true;chatError.value=null;const apiUrl=getApiUrl();const res=await axios.get(`${apiUrl}/api/chat/sessions`,getAuthHeaders());if(res.data&&res.data.success){chatMessages.value=res.data.data}else{chatError.value='Impossible de récupérer l\'historique du chat'}}catch(e){chatError.value='Une erreur est survenue lors de la récupération de l\'historique du chat'}finally{loadingChat.value=false}}
+const fetchUserPosts = async () => {
+  try {
+    loadingPosts.value = true
+    const apiUrl = getApiUrl()
+    const res = await axios.get(`${apiUrl}/api/users/me/experiences`, getAuthHeaders())
+    if (res.data.success) {
+      userPosts.value = res.data.data.map(p => ({ ...p, comments: p.comments || [] }))
+    }
+  } catch (e) {
+    console.error('Erreur lors du chargement des posts:', e)
+    if (e.response?.status === 401) {
+      router.push('/login')
+    }
+  } finally {
+    loadingPosts.value = false
+  }
+}
+const fetchMoodData = async () => {
+  try {
+    loadingMood.value = true
+    moodError.value = null
+    const apiUrl = getApiUrl()
+    const res = await axios.get(`${apiUrl}/api/moods`, getAuthHeaders())
+    moodData.value = res.data.data || []
+  } catch (e) {
+    console.error('Erreur lors du chargement des données de mood:', e)
+    moodError.value = 'Impossible de charger les données de mood'
+  } finally {
+    loadingMood.value = false
+  }
+}
+const fetchChatHistory = async () => {
+  try {
+    loadingChat.value = true
+    chatError.value = null
+    const apiUrl = getApiUrl()
+    const res = await axios.get(`${apiUrl}/api/chat/sessions`, getAuthHeaders())
+    if (res.data && res.data.success) {
+      chatMessages.value = res.data.data
+    } else {
+      chatError.value = 'Impossible de récupérer l\'historique du chat'
+    }
+  } catch (e) {
+    console.error('Erreur lors du chargement de l\'historique du chat:', e)
+    chatError.value = 'Une erreur est survenue lors de la récupération de l\'historique du chat'
+  } finally {
+    loadingChat.value = false
+  }
+}
 const sessionReports = ref([])
 const loadingOverview = ref(false)
-const fetchOverview = async()=>{try{loadingOverview.value=true;overviewError.value=null;const apiUrl=getApiUrl();const res=await axios.get(`${apiUrl}/api/chat/sessions/reports`,getAuthHeaders());if(res.data&&res.data.success){sessionReports.value = res.data.data.reports || res.data.data || []}else{overviewError.value='Impossible de charger les rapports'}}catch(e){overviewError.value='Erreur lors du chargement des rapports'}finally{loadingOverview.value=false}}
-const fetchUserData=async()=>{try{const apiUrl=getApiUrl();const res=await axios.get(`${apiUrl}/api/users/me`,getAuthHeaders());if(res.data.success){user.value=res.data.data;editForm.value.username=user.value.username||user.value.name;editForm.value.bio=user.value.bio||''}}catch(e){}}
-const updateProfile=async()=>{try{const apiUrl=getApiUrl();await axios.put(`${apiUrl}/api/users/me`,editForm.value,getAuthHeaders());user.value.username=editForm.value.username;showEditProfile.value=false}catch(e){}}
-const handleLogout=()=>{localStorage.removeItem('token');localStorage.removeItem('user');router.push('/login')}
+const fetchOverview = async () => {
+  try {
+    loadingOverview.value = true
+    overviewError.value = null
+    const apiUrl = getApiUrl()
+    const res = await axios.get(`${apiUrl}/api/chat/sessions/reports`, getAuthHeaders())
+    if (res.data && res.data.success) {
+      sessionReports.value = res.data.data.reports || res.data.data || []
+    } else {
+      overviewError.value = 'Impossible de charger les rapports'
+    }
+  } catch (e) {
+    console.error('Erreur lors du chargement des rapports:', e)
+    overviewError.value = 'Erreur lors du chargement des rapports'
+  } finally {
+    loadingOverview.value = false
+  }
+}
+const fetchUserData = async () => {
+  try {
+    const apiUrl = getApiUrl()
+    const res = await axios.get(`${apiUrl}/api/users/me`, getAuthHeaders())
+    if (res.data.success) {
+      user.value = res.data.data
+      editForm.value.username = user.value.username || user.value.name
+      editForm.value.bio = user.value.bio || ''
+    }
+  } catch (e) {
+    console.error('Erreur lors du chargement des données utilisateur:', e)
+    if (e.response?.status === 401) {
+      router.push('/login')
+    }
+  }
+}
+const updateProfile = async () => {
+  try {
+    const apiUrl = getApiUrl()
+    await axios.put(`${apiUrl}/api/users/me`, editForm.value, getAuthHeaders())
+    user.value.username = editForm.value.username
+    showEditProfile.value = false
+  } catch (e) {
+    console.error('Erreur lors de la mise à jour du profil:', e)
+  }
+}
+const handleLogout = () => {
+  localStorage.removeItem('token')
+  localStorage.removeItem('user')
+  router.push('/login')
+}
 
-onMounted(async()=>{await fetchUserData();await fetchUserPosts()})
+onMounted(async () => {
+  await fetchUserData()
+  await fetchUserPosts()
+})
 </script>
 
 <style scoped>

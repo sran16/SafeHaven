@@ -35,23 +35,15 @@ export const useAuthStore = defineStore('auth', () => {
       isLoading.value = true
       error.value = null
       
-      
-      const apiUrl = getApiUrl();
-      
-      
-      // Effectuer la requête de connexion
+      const apiUrl = getApiUrl()
       const response = await axios.post(`${apiUrl}/api/users/sessions`, 
         { name, password }, 
         getAuthHeaders()
-      );
-      
-      
+      )
       
       if (response.data.success) {
-        const userData = response.data.data.user;
-        const token = response.data.data.token;
-        
-        
+        const userData = response.data.data.user
+        const token = response.data.data.token
         
         setToken(token)
         setUser({
@@ -69,7 +61,6 @@ export const useAuthStore = defineStore('auth', () => {
         }
       }
     } catch (err) {
-      console.error('Erreur de connexion détaillée:', err);
       error.value = err.response?.data?.message || 'Erreur de connexion'
       return {
         success: false,
@@ -85,23 +76,15 @@ export const useAuthStore = defineStore('auth', () => {
       isLoading.value = true
       error.value = null
       
-      
-      const apiUrl = getApiUrl();
-      
-      
-      // Effectuer la requête d'inscription
+      const apiUrl = getApiUrl()
       const response = await axios.post(`${apiUrl}/api/users`, 
         { name, email, password }, 
         getAuthHeaders()
-      );
-      
-      
+      )
       
       if (response.data.success) {
-        const userData = response.data.data.user;
-        const token = response.data.data.token;
-        
-        
+        const userData = response.data.data.user
+        const token = response.data.data.token
         
         setToken(token)
         setUser({
@@ -119,7 +102,6 @@ export const useAuthStore = defineStore('auth', () => {
         }
       }
     } catch (err) {
-      console.error('Erreur d\'inscription détaillée:', err);
       error.value = err.response?.data?.message || 'Erreur d\'inscription'
       return {
         success: false,
@@ -132,7 +114,7 @@ export const useAuthStore = defineStore('auth', () => {
 
   const logout = async () => {
     try {
-      const apiUrl = getApiUrl();
+      const apiUrl = getApiUrl()
       await axios.delete(`${apiUrl}/api/users/sessions/current`, getAuthHeaders())
     } catch (error) {
       console.error('Erreur lors de la déconnexion:', error)
@@ -145,7 +127,7 @@ export const useAuthStore = defineStore('auth', () => {
 
   const fetchUser = async () => {
     try {
-      const apiUrl = getApiUrl();
+      const apiUrl = getApiUrl()
       const response = await axios.get(`${apiUrl}/api/users/me`, getAuthHeaders())
       setUser({
         id: response.data.id_user,
@@ -159,7 +141,7 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
 
-  // Initialisation
+  // Init
   if (token.value) {
     const savedUser = localStorage.getItem('user')
     if (savedUser) {
@@ -180,4 +162,4 @@ export const useAuthStore = defineStore('auth', () => {
     logout,
     fetchUser
   }
-}) 
+})

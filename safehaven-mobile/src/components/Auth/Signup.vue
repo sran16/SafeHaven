@@ -27,22 +27,19 @@
   
   <script setup>
   import { ref } from 'vue'
-  import { useRouter } from 'vue-router'
-  import { useAuthStore } from '../../stores/auth'
+import { useAuthStore } from '../../stores/auth'
 
-  const router = useRouter()
-  const authStore = useAuthStore()
+const authStore = useAuthStore()
 
-  const signupForm = ref({
-    name: '',
-    email: '',
-    password: '',
-    confirmPassword: ''
+const signupForm = ref({
+  name: '',
+  email: '',
+  password: '',
+  confirmPassword: ''
 })
-  
-  
- const handleSignup = async () => {
-    if (signupForm.value.password !== signupForm.value.confirmPassword) {
+
+const handleSignup = async () => {
+  if (signupForm.value.password !== signupForm.value.confirmPassword) {
     alert('Les mots de passe ne correspondent pas')
     return
   }

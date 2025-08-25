@@ -1,4 +1,4 @@
-import { createRouter, createWebHistory } from 'vue-router'
+import { createRouter, createWebHashHistory } from 'vue-router'
 import HomeView from '../views/HomeView.vue'
 import LoginView from '../views/AuthView.vue'
 import ChatbotView from '../views/ChatbotView.vue'
@@ -8,19 +8,17 @@ import SplashView from '../views/SplashView.vue'
 import { getCurrentToken, clearAuthData } from '../utils/tokenValidator'
 
 const router = createRouter({
-  history: createWebHistory(import.meta.env.BASE_URL),
+  history: createWebHashHistory(),
   routes: [
     {
       path: '/',
       name: 'splash',
-      component: SplashView,
-      meta: { requiresAuth: false }
+      component: SplashView
     },
     {
       path: '/login',
       name: 'login',
-      component: LoginView,
-      meta: { requiresAuth: false }
+      component: LoginView
     },
     {
       path: '/home',
@@ -49,26 +47,23 @@ const router = createRouter({
   ]
 })
 
-// Navigation guard
 router.beforeEach((to, from, next) => {
   const { token, isValid: tokenIsValid } = getCurrentToken()
   
-  // Debug logs supprimés pour une console plus propre
-  
   if (to.meta.requiresAuth && !tokenIsValid) {
-    // Nettoyer le token invalide
     if (token && !tokenIsValid) {
       clearAuthData()
     }
     next('/login')
-  } else if (to.path === '/login' && tokenIsValid) {
-    next('/home')
-  } else if (to.path === '/' && tokenIsValid) {
-    // Si l'utilisateur est connecté et accède à la page d'accueil, aller directement à /home
-    next('/home')
-  } else {
-    next()
+    return
   }
+  
+  if (tokenIsValid && (to.path === '/login' || to.path === '/')) {
+    next('/home')
+    return
+  }
+  
+  next()
 })
 
 export default router

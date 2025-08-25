@@ -81,7 +81,6 @@ const fetchPosts = async () => {
   try {
     const token = localStorage.getItem('token')
     if (!token) {
-      console.error('Pas de token d\'authentification')
       router.push('/login')
       return
     }
@@ -99,10 +98,10 @@ const fetchPosts = async () => {
         comments: post.comments || []
       }))
     } else {
-      console.error('Erreur dans la réponse:', response.data)
+      // Erreur dans la réponse API
     }
   } catch (error) {
-    console.error('Erreur lors du chargement des posts:', error)
+    // Erreur lors du chargement des posts
     if (error.response?.status === 401) {
       router.push('/login')
     }
@@ -115,7 +114,6 @@ const likePost = async (postId) => {
   try {
     const token = localStorage.getItem('token')
     if (!token) {
-      console.error('Pas de token d\'authentification')
       router.push('/login')
       return
     }
@@ -136,7 +134,7 @@ const likePost = async (postId) => {
       post.likes = response.data.data.likes
     }
   } catch (error) {
-    console.error('Erreur lors du like:', error)
+    // Erreur lors du like
     if (error.response?.status === 401) {
       router.push('/login')
     }
@@ -153,7 +151,6 @@ const addComment = async (post) => {
   try {
     const token = localStorage.getItem('token')
     if (!token) {
-      console.error('Pas de token d\'authentification')
       router.push('/login')
       return
     }
@@ -188,13 +185,11 @@ const addComment = async (post) => {
       
     }
   } catch (error) {
-    console.error('Erreur lors de l\'ajout du commentaire:', error)
+    // Erreur lors de l'ajout du commentaire
     if (error.response?.status === 401) {
       router.push('/login')
     }
-    if (error.response) {
-      console.error('Détails de l\'erreur:', error.response.data)
-    }
+    // Gestion d'erreur silencieuse pour l'UX
   }
 }
 
@@ -209,10 +204,6 @@ const formatDate = (date) => {
 }
 
 onMounted(() => {
-  // Test de l'API sans authentification
-  const apiUrl = getApiUrl();
-  axios.get(`${apiUrl}/api/test`).catch(() => {})
-    
   fetchPosts()
 })
 </script>

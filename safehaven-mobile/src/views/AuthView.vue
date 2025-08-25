@@ -16,7 +16,7 @@
           <button
             :class="{ active: activeTab === 'signUp' }"
             @click="activeTab = 'signUp'"
-          >Sign up</button>
+          >Sign up</button> 
         </div>
         <div class="tab-underline">
           <div :class="{ underline: activeTab === 'signIn' }"></div>
@@ -37,13 +37,7 @@
   </script>
   
   <style scoped>
-  @font-face {
-    font-family: 'Playfair Display';
-    src: url('@/assets/Fonts/Fraunces,Playfair_Display/Playfair_Display/PlayfairDisplay-VariableFont_wght.ttf') format('truetype');
-    font-weight: 100 900;
-    font-style: normal;
-    font-display: swap;
-  }
+  
   
   .auth-bg {
     min-height: 100vh;

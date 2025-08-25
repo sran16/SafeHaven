@@ -11,7 +11,14 @@ export default defineConfig([
     files: ['**/*.{js,mjs,jsx,vue}'],
   },
 
-  globalIgnores(['**/dist/**', '**/dist-ssr/**', '**/coverage/**']),
+  globalIgnores([
+    '**/dist/**', 
+    '**/dist-ssr/**', 
+    '**/coverage/**',
+    '**/ios/App/App/public/**',
+    '**/android/app/src/main/assets/**',
+    '**/capacitor.config.json'
+  ]),
 
   {
     languageOptions: {
@@ -25,4 +32,14 @@ export default defineConfig([
   ...pluginVue.configs['flat/essential'],
   ...pluginOxlint.configs['flat/recommended'],
   skipFormatting,
+  
+  // Règles personnalisées pour un code plus propre
+  {
+    rules: {
+      // Désactiver la règle multi-word pour les composants (acceptable pour un PFE)
+      'vue/multi-word-component-names': 'off',
+      // Permettre les variables non utilisées avec underscore
+      'no-unused-vars': ['error', { 'argsIgnorePattern': '^_', 'varsIgnorePattern': '^_' }],
+    }
+  },
 ])

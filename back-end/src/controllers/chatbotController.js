@@ -9,7 +9,6 @@ class ChatbotController {
         this.OPENAI_API_KEY = process.env.OPENAI_API_KEY;
         this.OPENAI_MODEL = process.env.OPENAI_MODEL;
 
-        // Numéros d'urgence et ressources
         this.emergencyResources = {
             suicide: "3114",
             violence: "3919",
@@ -23,66 +22,27 @@ class ChatbotController {
 
         this.systemPrompt = {
             role: "system",
-            content: `You are Haven, a very concise AI assistant specialized in mental well-being. Always respond in the same language as the user's message.
+            content: `You are Haven, a concise AI assistant for mental well-being. Always respond in the same language as the user.
 
-STRICT RULES (to follow for EVERY response):
-- Limit yourself to 1-2 sentences maximum, never more
-- Use a conversational tone, like in a chat between friends
-- Formulate mainly short and direct questions
-- NEVER give long or theoretical explanations
-- NEVER develop multiple points in the same response
-- Avoid complex or overly professional formulations
-- ALWAYS respond in the same language as the user's message (French, English, etc.)
+Rules:
+- Keep responses to 1-2 sentences max
+- Use a friendly, conversational tone
+- Ask short, direct questions
+- No long explanations
+- Match the user's language (French/English)
 
-Perfect examples in French:
-- "Comment te sens-tu exactement aujourd'hui ?"
-- "Qu'est-ce qui t'inquiète le plus en ce moment ?"
-- "As-tu essayé la respiration profonde ? Ça aide souvent."
-- "Je comprends. Qu'est-ce qui pourrait te faire te sentir mieux maintenant ?"
+Examples:
+French: "Comment te sens-tu aujourd'hui ?" "Qu'est-ce qui t'inquiète ?"
+English: "How are you feeling today?" "What's worrying you?"
 
-Perfect examples in English:
-- "How are you feeling today exactly?"
-- "What worries you most right now?"
-- "Have you tried deep breathing? It often helps."
-- "I understand. What could make you feel better now?"
-
-Your unique goal: maintain a brief and natural conversation, like through text messages, in the user's language.`
-        };
-
-        // Bind des méthodes pour préserver le contexte
-        this.detectDistressAndEmergency = nlpService.detectDistressAndEmergency.bind(nlpService);
-        this.getWellnessExercise = nlpService.getWellnessExercise.bind(nlpService);
-        this.startSession = this.startSession.bind(this);
-        this.processMessage = this.processMessage.bind(this);
-        this.getHistory = this.getHistory.bind(this);
-        this.endSession = this.endSession.bind(this);
-        this.getConversationHistory = this.getConversationHistory.bind(this);
-        this.getSentimentAnalysis = this.getSentimentAnalysis.bind(this);
-        this.getRecommendations = this.getRecommendations.bind(this);
-        this.generateReport = this.generateReport.bind(this);
-    }
-
-    // Détection d'urgence simplifiée sans appel API
-    detectDistressAndEmergency(message) {
-        const lowercaseMessage = message.toLowerCase();
-        
-        // Mots-clés d'urgence
-        const emergencyWords = ['suicide', 'mourir', 'tuer', 'urgent', 'panique'];
-        const distressWords = ['triste', 'déprimé', 'anxieux', 'stress', 'mal'];
-        
-        const hasEmergency = emergencyWords.some(word => lowercaseMessage.includes(word));
-        const hasDistress = distressWords.some(word => lowercaseMessage.includes(word));
-        
-        return {
-            emergency: hasEmergency,
-            distressLevel: hasEmergency ? 5 : (hasDistress ? 4 : 3)
+Goal: Brief, natural conversation like texting.`
         };
     }
 
-    // Sélectionne un exercice de bien-être aléatoire
+
+
     getWellnessExercise(type) {
-        const exercises = this.wellnessExercises[type];
-        return exercises[Math.floor(Math.random() * exercises.length)];
+        return nlpService.getWellnessExercise(type);
     }
 
     // Détecte la langue de la conversation
@@ -151,7 +111,7 @@ Your unique goal: maintain a brief and natural conversation, like through text m
         return 'french';
     }
 
-    // Crée un prompt système adapté à la langue détectée
+
     createLanguageSpecificPrompt(language) {
         if (language === 'french') {
             return {
@@ -211,7 +171,7 @@ Your unique goal: maintain a brief and natural conversation, like through text m
         try {
             const { userId } = req.params;
             
-            // Récupérer la session et son historique
+
             const session = await chatbotService.getConversationHistory(userId);
             
             return successResponse(res, 200, 'Conversation history retrieved', {
@@ -234,7 +194,7 @@ Your unique goal: maintain a brief and natural conversation, like through text m
     async processMessage(req, res) {
         try {
             const { message } = req.body;
-            // Utiliser l'ID utilisateur à partir du token d'authentification
+
             const userId = req.user.id_user;
             
 
@@ -251,7 +211,7 @@ Your unique goal: maintain a brief and natural conversation, like through text m
             }
 
             // Analyser le message pour détecter la détresse
-            const analysis = this.detectDistressAndEmergency(message);
+            const analysis = nlpService.detectDistressAndEmergency(message);
             
 
             if (!this.OPENAI_API_KEY || !this.OPENAI_MODEL) {
@@ -429,7 +389,7 @@ Your unique goal: maintain a brief and natural conversation, like through text m
     // Génère un rapport de session automatiquement
     async generateSessionReport(sessionId, userMessage, aiResponse, language) {
         const timestamp = new Date();
-        const distressAnalysis = this.detectDistressAndEmergency(userMessage);
+        const distressAnalysis = nlpService.detectDistressAndEmergency(userMessage);
         
         // Extraire les thèmes du message
         const topics = this.extractTopics(userMessage);

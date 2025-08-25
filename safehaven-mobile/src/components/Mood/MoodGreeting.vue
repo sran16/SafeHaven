@@ -14,8 +14,7 @@
 import { computed } from 'vue'
 import { useAuthStore } from '../../stores/auth'
 
-// Emits
-const emit = defineEmits(['openModal'])
+defineEmits(['openModal'])
 
 // Store
 const authStore = useAuthStore()

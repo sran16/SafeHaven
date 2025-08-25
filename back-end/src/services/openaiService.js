@@ -25,7 +25,6 @@ class OpenAIService {
             content: [{ type: 'text', text: m.content }]
         }));
 
-        // Utiliser Responses si disponible (SDK récent), sinon fallback Chat Completions
         if (this.client.responses && typeof this.client.responses.create === 'function') {
             const response = await this.client.responses.create({
                 model: this.model,
@@ -47,4 +46,3 @@ class OpenAIService {
 }
 
 export default new OpenAIService();
-

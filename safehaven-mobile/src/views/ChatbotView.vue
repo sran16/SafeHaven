@@ -24,14 +24,14 @@
         @keyup.enter="sendMessage"
       />
       <button @click="sendMessage" class="send-button">
-        <img :src="sendIcon" alt="Send" class="send-icon" />
+        <img :src="sendIcon" alt="Send" />
       </button>
     </div>
 </div>
 </template>
 
 <script setup>
-import { ref, nextTick, onMounted, onUnmounted, computed } from 'vue'
+import { ref, nextTick, onMounted, computed } from 'vue'
 import axios from 'axios'
 import { getApiUrl, getAuthHeaders } from '../utils/api'
 import Ia from '../components/Chat/Ia.vue'
@@ -42,14 +42,6 @@ const messages = ref([])
 const newMessage = ref('')
 const isProcessing = ref(false)
 const chatWindow = ref(null)
-const messageInput = ref(null)
-
-const formatTime = (timestamp) => {
-  return new Date(timestamp).toLocaleTimeString('fr-FR', {
-    hour: '2-digit',
-    minute: '2-digit'
-  })
-}
 
 const scrollToBottom = async () => {
   await nextTick()
@@ -82,7 +74,6 @@ const sendMessage = async () => {
 
     const userStr = localStorage.getItem('user')
     
-    
     if (!userStr) {
       throw new Error('Session expirée, veuillez vous reconnecter')
     }
@@ -90,8 +81,8 @@ const sendMessage = async () => {
     let user
     try {
       user = JSON.parse(userStr)
-      
     } catch (e) {
+      console.error('Erreur parsing user data:', e)
       throw new Error('Erreur de session, veuillez vous reconnecter')
     }
     
@@ -101,18 +92,11 @@ const sendMessage = async () => {
 
     const apiUrl = getApiUrl();
     
-    // Envoyer le message directement
-    // Le middleware d'authentification sur le backend extraira l'identifiant utilisateur du token
-    
-    
-    // Envoyer le message
     const response = await axios.post(`${apiUrl}/api/chat/sessions/current/messages`, 
       { message: messageText },
       getAuthHeaders()
     )
 
-    
-    
     const botMessage = {
       text: response.data.data?.response || 'Désolé, je n\'ai pas compris votre message.',
       sender: 'bot',
@@ -146,10 +130,8 @@ onMounted(async () => {
   try {
     const userStr = localStorage.getItem('user')
     if (userStr) userObj.value = JSON.parse(userStr)
-  } catch {}
-
-  if (messageInput.value) {
-    messageInput.value.focus()
+  } catch {
+    console.warn('Impossible de charger les données utilisateur stockées')
   }
 
   // Vérifier s'il y a un timestamp stocké pour une redirection
@@ -206,20 +188,9 @@ onMounted(async () => {
     }
   }
 })
-// Annuler le padding global quand le composant est monté
-onMounted(() => {
-  // Plus besoin de modifier les styles globaux - géré par App.vue
-})
-
-// Cleanup si nécessaire
-onUnmounted(() => {
-  // Plus besoin de modifier les styles globaux
-})
 </script>
 
 <style scoped>
-
-
 .chatbot-bg {
   min-height: 100vh;
   width: 100vw;
@@ -291,7 +262,6 @@ onUnmounted(() => {
 .message-input {
   flex: 1;
   border: none;
-
   padding: 12px 16px;
   font-size: 16px;
   color: var(--text-primary);
@@ -313,10 +283,7 @@ onUnmounted(() => {
   border: none;
   padding: 0;
   margin: 0;
-
-
 }
-
 
 /* Scrollbar personnalisée */
 .chat-messages::-webkit-scrollbar {
@@ -331,6 +298,4 @@ onUnmounted(() => {
   background: #D0D0D0;
   border-radius: 2px;
 }
-
-
 </style>

@@ -1,30 +1,15 @@
 import prisma from '../config/database.js';
 
-// Liste des mots/expressions à modérer (français + anglais)
 const FLAGGED_WORDS = [
-    // Mots dangereux - Français
     'suicide', 'se tuer', 'mourir', 'overdose', 'automutilation',
-    // Mots dangereux - Anglais
-    'kill myself', 'suicide', 'kill me', 'end my life', 'want to die', 'self harm', 'cut myself', 'overdose', 'jump off', 'hang myself',
-    
-    // Insultes/harcèlement - Français
+    'kill myself', 'kill me', 'end my life', 'want to die', 'self harm', 'cut myself', 'jump off', 'hang myself',
     'connard', 'salope', 'enculé', 'pute', 'fdp',
-    // Insultes/harcèlement - Anglais
     'fuck you', 'bitch', 'asshole', 'bastard', 'damn you', 'go to hell', 'hate you', 'idiot', 'stupid',
-    
-    // Contenu inapproprié - Français
     'drogue', 'dealer', 'cannabis', 'cocaine', 'héroïne',
-    // Contenu inapproprié - Anglais
-    'drugs', 'dealer', 'cannabis', 'cocaine', 'heroin', 'weed', 'marijuana', 'meth',
-    
-    // Informations personnelles - Français
+    'drugs', 'heroin', 'weed', 'marijuana', 'meth',
     'téléphone', 'adresse', 'email', '@', 'whatsapp',
-    // Informations personnelles - Anglais
-    'phone number', 'address', 'email', '@', 'whatsapp', 'contact me', 'call me',
-    
-    // Contenu commercial/spam - Français
+    'phone number', 'address', 'contact me', 'call me',
     'vendre', 'acheter', 'promo', 'gratuit', 'cliquez ici',
-    // Contenu commercial/spam - Anglais
     'buy now', 'click here', 'free offer', 'promotion', 'discount', 'sale'
 ];
 
@@ -36,9 +21,6 @@ const SEVERITY_LEVELS = {
 };
 
 class ModerationService {
-    /**
-     * Analyse automatique du contenu pour détecter les problèmes
-     */
     async analyzeContent(content) {
         const analysis = {
             flagged: false,
@@ -51,13 +33,11 @@ class ModerationService {
         const normalizedContent = content.toLowerCase();
         let riskScore = 0;
 
-        // Détection des mots flaggés
         for (const word of FLAGGED_WORDS) {
             if (normalizedContent.includes(word.toLowerCase())) {
                 analysis.flagged = true;
                 analysis.flaggedWords.push(word);
                 
-                // Score de risque selon le type de mot
                 if (['suicide', 'se tuer', 'mourir', 'kill myself', 'kill me', 'end my life', 'want to die', 'self harm', 'cut myself', 'jump off', 'hang myself'].includes(word)) {
                     riskScore += 10;
                     analysis.reasons.push('Contenu à risque suicidaire');
@@ -74,8 +54,7 @@ class ModerationService {
             }
         }
 
-        // Détection de patterns spécifiques
-        if (normalizedContent.match(/\b\d{10}\b/)) { // Numéro de téléphone
+        if (normalizedContent.match(/\b\d{10}\b/)) {
             analysis.flagged = true;
             riskScore += 5;
             analysis.reasons.push('Numéro de téléphone détecté');
@@ -100,32 +79,24 @@ class ModerationService {
         return analysis;
     }
 
-    /**
-     * Modère une expérience lors de sa création (SYSTÈME SIMPLE)
-     */
     async moderateExperience(experienceData) {
         const analysis = await this.analyzeContent(experienceData.content);
         
         if (analysis.flagged) {
-            // SYSTÈME SIMPLE : BLOCAGE DIRECT
-            
-            // Log de l'action automatique
             await this.logModerationAction({
                 action: `BLOCKED: ${analysis.reasons.join(', ')}`,
                 experienceId: null,
-                moderatorId: 1, // ID système
+                moderatorId: 1,
                 severity: analysis.severity,
                 details: JSON.stringify(analysis)
             });
 
-            // Log utilisateur
             await this.logUserAction(
                 experienceData.userId,
                 'POST_BLOCKED',
                 `Contenu bloqué: ${analysis.reasons.join(', ')}`
             );
 
-            // RETOURNER ERREUR AVEC DÉTAILS POUR L'UI
             return {
                 blocked: true,
                 reasons: analysis.reasons,
@@ -135,7 +106,6 @@ class ModerationService {
             };
         }
 
-        // Contenu clean, publication directe
         return {
             ...experienceData,
             blocked: false,
@@ -143,13 +113,9 @@ class ModerationService {
         };
     }
 
-    /**
-     * Génère un message de warning personnalisé
-     */
     generateWarningMessage(analysis) {
         const { reasons, severity } = analysis;
         
-        // Messages according to problem type
         if (reasons.includes('Contenu à risque suicidaire')) {
             return {
                 title: "⚠️ Sensitive Content Detected",
@@ -212,21 +178,14 @@ class ModerationService {
                 data: {
                     action: action,
                     experienceId: experienceId,
-                    moderatorId: moderatorId,
-                    // Ajouter des champs supplémentaires si nécessaire
-                    // severity: severity,
-                    // details: details
+                    moderatorId: moderatorId
                 }
             });
         } catch (error) {
-            // Ne pas faire planter l'app si le logging échoue
             return null;
         }
     }
 
-    /**
-     * Log une action utilisateur
-     */
     async logUserAction(userId, action, details = '') {
         try {
             return await prisma.userLogs.create({

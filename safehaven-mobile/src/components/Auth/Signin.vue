@@ -13,18 +13,17 @@
   </template>
   
   <script setup>
-  import { ref } from 'vue'
-  import { useAuthStore } from '../../stores/auth'
+import { ref } from 'vue'
+import { useAuthStore } from '../../stores/auth'
 
-  const authStore = useAuthStore()
+const authStore = useAuthStore()
 
-  const loginForm = ref({
-    name: '',
-    password: ''
-  })
- 
-  
-  const handleLogin = async () => {
+const loginForm = ref({
+  name: '',
+  password: ''
+})
+
+const handleLogin = async () => {
     try {
       const result = await authStore.login(loginForm.value.name, loginForm.value.password)
       if (!result.success) {
@@ -34,6 +33,12 @@
       console.error('Erreur de connexion:', error)
       alert('Erreur de connexion')
     }
+  }
+  </script>
+  
+  <script>
+  export default {
+    name: 'UserSignIn'
   }
   </script>
   

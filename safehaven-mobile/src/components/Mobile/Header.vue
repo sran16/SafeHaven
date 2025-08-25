@@ -110,7 +110,9 @@ const shareExperience = async () => {
             getAuthHeaders()
         )
         
-        
+        if (response.data.success) {
+            // Post créé avec succès - rafraîchir la liste si nécessaire
+        }
         
         // Fermer le modal
         closeAddModal()

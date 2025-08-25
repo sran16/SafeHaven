@@ -9,6 +9,7 @@ import chatbotRoutes from './src/routes/chatbotRoutes.js';
 import moodRoutes from './src/routes/moodRoutes.js';
 import userRoutes from './src/routes/userRoutes.js';
 import experienceRoutes from './src/routes/experienceRoutes.js';
+import userService from './src/services/userService.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -101,8 +102,26 @@ app.use((req, res) => {
 
 // Lancer le serveur
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, '0.0.0.0', () => {
+app.listen(PORT, '0.0.0.0', async () => {
   if (process.env.NODE_ENV === 'development') {
     console.info(`Serveur démarré sur http://localhost:${PORT}`);
   }
+  
+  // Nettoyage initial des sessions expirées
+  try {
+    await userService.cleanupExpiredSessions();
+    console.log('Nettoyage des sessions expirées effectué');
+  } catch (error) {
+    console.error('Erreur lors du nettoyage initial:', error);
+  }
+  
+  // Nettoyage automatique toutes les heures (mobile-friendly)
+  setInterval(async () => {
+    try {
+      await userService.cleanupExpiredSessions();
+      console.log('Nettoyage automatique des sessions effectué');
+    } catch (error) {
+      console.error('Erreur lors du nettoyage automatique:', error);
+    }
+  }, 60 * 60 * 1000); // 1 heure
 });

@@ -1,39 +1,34 @@
-import { Capacitor } from '@capacitor/core';
-import { isTokenValid } from './tokenValidator';
+import { Capacitor } from '@capacitor/core'
+import { isTokenValid, tokenWillExpireSoon } from './tokenValidator'
 
-/**
- * Détermine si l'application s'exécute dans un environnement iOS
- * @returns {boolean} Vrai si l'environnement est iOS
- */
 export const isIOSEnvironment = () => {
-  return Capacitor.getPlatform() === 'ios';
-};
+  return Capacitor.getPlatform() === 'ios'
+}
 
-/**
- * Fonction utilitaire pour obtenir l'URL de l'API sans slash final
- * @returns {string} L'URL de l'API sans slash final
- */
 export const getApiUrl = () => {
-  // Priorité à la variable d'environnement, sinon URL Render par défaut
-  const apiUrl = import.meta.env.VITE_API_URL || "https://safehaven-hy8s.onrender.com";
+  const apiUrl = import.meta.env.VITE_API_URL || "https://safehaven-hy8s.onrender.com"
 
-  // En dev iOS uniquement, si on pointe sur localhost on remappe vers 127.0.0.1
+  // iOS simulator fix pour localhost
   if (isIOSEnvironment() && /localhost|127\.0\.0\.1/.test(apiUrl)) {
-    return "http://127.0.0.1:3000";
+    return "http://127.0.0.1:3000"
   }
 
-  return apiUrl;
-};
+  return apiUrl
+}
 
-/**
- * Configuration par défaut pour axios
- */
 export const getAuthHeaders = () => {
-  const token = localStorage.getItem('token');
+  const token = localStorage.getItem('token')
   
-  // Validation complète du token (format + expiration)
+  // Validation mobile-friendly avec nettoyage auto
   if (token && !isTokenValid(token)) {
-    // token invalide/expiré détecté
+    localStorage.removeItem('token')
+    localStorage.removeItem('user')
+    console.log('Token expiré - nettoyage automatique mobile')
+  }
+  
+  // Warning si expiration proche (pour UX mobile)
+  if (token && tokenWillExpireSoon(token)) {
+    console.warn('Token expire bientôt - session mobile longue recommandée')
   }
   
   return {
@@ -41,5 +36,5 @@ export const getAuthHeaders = () => {
       'Authorization': token ? `Bearer ${token}` : '',
       'Content-Type': 'application/json'
     }
-  };
-}; 
+  }
+}
