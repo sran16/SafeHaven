@@ -17,6 +17,8 @@ dotenv.config();
 
 const app = express();
 
+// Requis derrière un proxy (Render) pour que express-rate-limit lise correctement X-Forwarded-For
+app.set('trust proxy', 1);
 
 app.use(cors({
   origin: ['http://localhost:5173', 'https://safe-haven-kappa.vercel.app', 'capacitor://localhost', 'http://localhost', 'file://', 'http://10.0.2.2:3000'],
