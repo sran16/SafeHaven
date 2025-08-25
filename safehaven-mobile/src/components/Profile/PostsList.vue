@@ -1,7 +1,8 @@
 <template>
   <div class="posts-list">
     <div v-if="loading" class="loading-state">
-      <slot name="loading">Loading...</slot>
+      <div class="loading-spinner"></div>
+      <p>Loading posts...</p>
     </div>
 
     <div v-else-if="posts.length === 0" class="empty-state">
@@ -40,6 +41,7 @@
     </div>
   </div>
 </template>
+
 <script setup>
 import likesIcon from '../../assets/Icons/HomeIcons/likes.svg'
 import commentsIcon from '../../assets/Icons/HomeIcons/comments.svg'
@@ -50,13 +52,14 @@ defineProps({
 })
 
 const formatDate = (date) => {
-  return new Date(date).toLocaleDateString('fr-FR', {
+  return new Date(date).toLocaleDateString('en-US', {
     day: 'numeric',
     month: 'long',
     year: 'numeric'
   })
 }
 </script>
+
 <style scoped>
 .posts-list .list {
   display: flex;
@@ -115,12 +118,39 @@ const formatDate = (date) => {
 .loading-state,
 .empty-state {
   text-align: center;
-  padding: 20px;
-  color: #666;
+  padding: 40px 20px;
+  color: var(--text-secondary, #666);
   font-size: 16px;
+  font-family: 'Nunito';
 }
 
-.loading-state {
-  font-style: italic;
+.loading-spinner {
+  border: 3px solid rgba(124,126,115,.1);
+  border-top: 3px solid var(--Muted-Olive, #7C7E73);
+  border-radius: 50%;
+  width: 40px;
+  height: 40px;
+  animation: spin 1s linear infinite;
+  margin: 0 auto 16px;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0) }
+  100% { transform: rotate(360deg) }
+}
+
+/* Boutons harmonisés */
+.retry-btn,
+.start-chat-btn {
+  background: var(--Muted-Olive, #7C7E73);
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  padding: 12px 20px;
+  font-size: 14px;
+  font-weight: 500;
+  font-family: 'Nunito';
+  margin-top: 16px;
+  cursor: pointer;
 }
 </style>

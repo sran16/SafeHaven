@@ -73,7 +73,7 @@ line-height: normal;
 
 .mood-text {
   color: var(--light-ivory, #F6F4F0);
-  font-family: Nunito, sans-serif;
+  font-family: Nunito;
   font-size: 16px;
   font-style: normal;
   font-weight: 400;
@@ -82,7 +82,7 @@ line-height: normal;
 
 .no-mood {
   color: var(--light-ivory, #F6F4F0);
-  font-family: Nunito, sans-serif;
+  font-family: Nunito;
   font-size: 14px;
   font-style: normal;
   font-weight: 400;

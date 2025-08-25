@@ -129,7 +129,7 @@ watch(() => props.isOpen, (newValue) => {
 
 .modal-content h2 {
   color: var(--text-primary);
-  font-family: 'Fraunces', serif;
+  font-family: 'Playfair Display';
   font-size: 20px;
   font-weight: 400;
   text-align: center;

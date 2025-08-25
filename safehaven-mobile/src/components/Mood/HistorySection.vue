@@ -104,7 +104,7 @@ const formatMonth = (monthKey) => {
 
 .history-section h2 {
   color: var(--Muted-Olive, #7C7E73);
-  font-family: 'Fraunces', serif;
+  font-family: 'Playfair Display';
   font-size: 24px;
   font-weight: 600;
   margin-bottom: 20px;
@@ -140,7 +140,7 @@ const formatMonth = (monthKey) => {
 
 .month-header {
   color: var(--Muted-Olive, #7C7E73);
-  font-family: 'Fraunces', serif;
+  font-family: 'Playfair Display';
   font-size: 18px;
   font-weight: 500;
   margin-bottom: 12px;

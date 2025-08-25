@@ -550,7 +550,7 @@ onMounted(async () => {
   padding: 12px 20px;
   font-size: 14px;
   font-weight: 500;
-
+  font-family: 'Nunito';
   margin-top: 16px;
   transition: all 0.2s ease;
 }

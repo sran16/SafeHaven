@@ -70,7 +70,7 @@ margin-bottom: 16px;
   color: var(--light-ivory, #F6F4F0);
   border: none;
   border-radius: 5px;
-  font-family: Nunito, sans-serif;
+  font-family: Nunito;
   font-size: 14px;
   font-style: normal;
   font-weight: 500;

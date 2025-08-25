@@ -121,7 +121,7 @@ const shareExperience = async () => {
         window.location.reload()
         
     } catch (error) {
-        console.error('❌ Erreur lors de la création:', error)
+        console.error(' Error while publishing:', error)
         
         if (error.response?.status === 401) {
             alert('Session expired, please log in again')
@@ -194,7 +194,7 @@ const shareExperience = async () => {
 .modal-header h2 {
     color: var(--Muted-Olive, #7C7E73);
     text-align: center;
-    font-family: 'Nunito', sans-serif;
+    font-family: 'Nunito';
     font-size: 17px;
     font-style: normal;
     font-weight: 600;
@@ -214,7 +214,7 @@ const shareExperience = async () => {
     border-radius: 12px;
     background: var(--light-ivory);
     color: var(--Muted-Olive, #7C7E73);
-    font-family: 'Nunito', sans-serif;
+    font-family: 'Nunito';
     font-size: 16px;
     font-weight: 400;
     line-height: 1.5;
@@ -236,7 +236,7 @@ const shareExperience = async () => {
     color: white;
     border: none;
     padding: 12px ;
-    font-family: 'Nunito', sans-serif;
+    font-family: 'Nunito';
     font-size: 16px;
     font-weight: 600;
 
@@ -251,7 +251,7 @@ const shareExperience = async () => {
     color: var(--light-ivory, #F6F4F0);
     border: 1px solid var(--light-ivory, #F6F4F0);
     padding: 12px ;
-    font-family: 'Nunito', sans-serif;
+    font-family: 'Nunito';
     font-size: 16px;
     font-weight: 600;
 
@@ -280,7 +280,7 @@ const shareExperience = async () => {
 
 .warning-header h3 {
     color: #d63031;
-    font-family: 'Nunito', sans-serif;
+    font-family: 'Nunito';
     font-size: 18px;
     font-weight: 700;
     margin: 0;
@@ -292,7 +292,7 @@ const shareExperience = async () => {
 
 .warning-message {
     color: var(--Muted-Olive, #7C7E73);
-    font-family: 'Nunito', sans-serif;
+    font-family: 'Nunito';
     font-size: 16px;
     line-height: 1.5;
     margin-bottom: 16px;
@@ -300,7 +300,7 @@ const shareExperience = async () => {
 
 .warning-suggestion {
     color: var(--Muted-Olive, #7C7E73);
-    font-family: 'Nunito', sans-serif;
+    font-family: 'Nunito';
     font-size: 14px;
     line-height: 1.4;
     background: rgba(124, 126, 115, 0.1);
@@ -318,7 +318,7 @@ const shareExperience = async () => {
 
 .help-resources h4 {
     color: #d63031;
-    font-family: 'Nunito', sans-serif;
+    font-family: 'Nunito';
     font-size: 16px;
     font-weight: 600;
     margin: 0 0 12px 0;
@@ -331,7 +331,7 @@ const shareExperience = async () => {
 
 .help-resources li {
     color: var(--Muted-Olive, #7C7E73);
-    font-family: 'Nunito', sans-serif;
+    font-family: 'Nunito';
     font-size: 14px;
     margin-bottom: 8px;
 }
@@ -346,7 +346,7 @@ const shareExperience = async () => {
     border: none;
     border-radius: 10px;
     padding: 12px 32px;
-    font-family: 'Nunito', sans-serif;
+    font-family: 'Nunito';
     font-size: 16px;
     font-weight: 600;
 
