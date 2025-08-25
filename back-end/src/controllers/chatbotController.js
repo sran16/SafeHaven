@@ -1,11 +1,13 @@
 import chatbotService from '../services/chatbotService.js';
 import { successResponse, errorResponse } from '../utils/responses.js';
-import axios from 'axios';
+import openAIService from '../services/openaiService.js';
+import languageService from '../services/languageService.js';
+import nlpService from '../services/nlpService.js';
 
 class ChatbotController {
     constructor() {
-        this.MISTRAL_API_KEY = process.env.MISTRAL_API_KEY;
-        this.MISTRAL_API_URL = 'https://api.mistral.ai/v1/chat/completions';
+        this.OPENAI_API_KEY = process.env.OPENAI_API_KEY;
+        this.OPENAI_MODEL = process.env.OPENAI_MODEL;
 
         // Numéros d'urgence et ressources
         this.emergencyResources = {
@@ -16,25 +18,6 @@ class ChatbotController {
                 "SOS Amitié : 09 72 39 40 50",
                 "Fil Santé Jeunes : 0800 235 236",
                 "Croix-Rouge Écoute : 0800 858 858"
-            ]
-        };
-
-        // Techniques de respiration et méditation
-        this.wellnessExercises = {
-            breathing: [
-                "Respirez en 4-7-8 : Inspirez sur 4 temps, retenez sur 7, expirez sur 8",
-                "Respiration carrée : Inspirez 4s, retenez 4s, expirez 4s, attendez 4s",
-                "Cohérence cardiaque : Respirez 6 fois par minute pendant 5 minutes"
-            ],
-            meditation: [
-                "Scan corporel : Portez attention à chaque partie de votre corps",
-                "Méditation de pleine conscience : Observez vos pensées sans jugement",
-                "Ancrage dans le présent : Notez 5 choses que vous voyez, 4 que vous touchez..."
-            ],
-            grounding: [
-                "Technique 5-4-3-2-1 : Observez 5 choses visibles, 4 tactiles...",
-                "Marche consciente : Concentrez-vous sur chaque pas",
-                "Contact avec la nature : Touchez un arbre, marchez pieds nus..."
             ]
         };
 
@@ -67,8 +50,8 @@ Your unique goal: maintain a brief and natural conversation, like through text m
         };
 
         // Bind des méthodes pour préserver le contexte
-        this.detectDistressAndEmergency = this.detectDistressAndEmergency.bind(this);
-        this.getWellnessExercise = this.getWellnessExercise.bind(this);
+        this.detectDistressAndEmergency = nlpService.detectDistressAndEmergency.bind(nlpService);
+        this.getWellnessExercise = nlpService.getWellnessExercise.bind(nlpService);
         this.startSession = this.startSession.bind(this);
         this.processMessage = this.processMessage.bind(this);
         this.getHistory = this.getHistory.bind(this);
@@ -217,7 +200,7 @@ Your unique goal: maintain a brief and natural conversation, like through text m
 
     async startSession(req, res) {
         try {
-            const session = await chatbotService.createSession(req.body.userId);
+            const session = await chatbotService.createSession(req.user.id_user);
             return successResponse(res, 201, 'Session started successfully', session);
         } catch (error) {
             return errorResponse(res, 400, error.message);
@@ -271,7 +254,7 @@ Your unique goal: maintain a brief and natural conversation, like through text m
             const analysis = this.detectDistressAndEmergency(message);
             
 
-            if (!this.MISTRAL_API_KEY) {
+            if (!this.OPENAI_API_KEY || !this.OPENAI_MODEL) {
                 
                 const response = {
                     response: "Je suis là pour vous écouter et vous soutenir. Comment puis-je vous aider aujourd'hui ?"
@@ -287,11 +270,11 @@ Your unique goal: maintain a brief and natural conversation, like through text m
             const conversationHistory = await chatbotService.getConversationHistory(userId);
             
             // Détecter la langue de la conversation
-            const conversationLanguage = this.detectConversationLanguage(message, conversationHistory);
+            const conversationLanguage = languageService.detectConversationLanguage(message, conversationHistory);
             
             
             // Créer un prompt système adapté à la langue
-            const languageSpecificPrompt = this.createLanguageSpecificPrompt(conversationLanguage);
+            const languageSpecificPrompt = languageService.createLanguageSpecificPrompt(conversationLanguage);
 
             try {
                 // Préparer les messages pour l'API
@@ -317,27 +300,7 @@ Your unique goal: maintain a brief and natural conversation, like through text m
                 
                 
                 
-                const response = await fetch(this.MISTRAL_API_URL, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${this.MISTRAL_API_KEY}`
-                    },
-                    body: JSON.stringify({
-                        model: "mistral-tiny",
-                        messages: messages,
-                        temperature: 0.7,
-                        max_tokens: 300
-                    })
-                });
-
-                if (!response.ok) {
-                    console.error('Erreur API Mistral:', response.status);
-                    throw new Error(`Mistral API error: ${response.status}`);
-                }
-
-                const data = await response.json();
-                const aiResponse = data.choices[0].message.content;
+                const aiResponse = await openAIService.chat(messages, { temperature: 0.7, max_tokens: 300 }) || "Je suis là pour toi. Dis-moi ce que tu ressens en ce moment.";
 
                 // Sauvegarder la conversation
                 try {
@@ -362,8 +325,8 @@ Your unique goal: maintain a brief and natural conversation, like through text m
 
                 return successResponse(res, 200, 'Message processed successfully', responseData);
 
-            } catch (mistralError) {
-                console.error('Erreur détaillée de l\'API Mistral:', mistralError);
+            } catch (openaiError) {
+                console.error('Erreur détaillée de l\'API OpenAI:', openaiError);
 
                 const responseData = {
                     response: "Je suis désolé, j'ai du mal à traiter votre message pour le moment. Je suis là pour vous écouter et vous soutenir. Comment puis-je vous aider aujourd'hui ?"

@@ -70,15 +70,12 @@ import commentsIcon from '../../assets/Icons/HomeIcons/comments.svg'
 import { ref, onMounted } from 'vue'
 import axios from 'axios'
 import { useRouter } from 'vue-router'
+import { getApiUrl, getAuthHeaders } from '../../utils/api'
 
 const router = useRouter()
 const posts = ref([])
 const loading = ref(true)
 
-// Fonction pour obtenir l'URL de l'API
-const getApiUrl = () => {
-  return import.meta.env.VITE_API_URL || 'http://localhost:3000'
-}
 
 const fetchPosts = async () => {
   try {
@@ -91,11 +88,7 @@ const fetchPosts = async () => {
 
     const apiUrl = getApiUrl();
     
-    const response = await axios.get(`${apiUrl}/api/experiences`, {
-      headers: {
-        'Authorization': `Bearer ${token}`
-      }
-    })
+    const response = await axios.get(`${apiUrl}/api/experiences`, getAuthHeaders())
     
     
     if (response.data.success) {
@@ -132,14 +125,10 @@ const likePost = async (postId) => {
     let response
     if (post?.isLiked) {
       // UNLIKE → DELETE
-      response = await axios.delete(`${apiUrl}/api/experiences/${postId}/likes`, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      })
+      response = await axios.delete(`${apiUrl}/api/experiences/${postId}/likes`, getAuthHeaders())
     } else {
       // LIKE → PUT (idempotent)
-      response = await axios.put(`${apiUrl}/api/experiences/${postId}/likes`, {}, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      })
+      response = await axios.put(`${apiUrl}/api/experiences/${postId}/likes`, {}, getAuthHeaders())
     }
     
     if (post && response.data.success) {
@@ -176,11 +165,7 @@ const addComment = async (post) => {
     const response = await axios.post(
       `${apiUrl}/api/experiences/${post.id_experience}/comments`,
       { content: commentContent },
-      {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      }
+      getAuthHeaders()
     )
 
     

@@ -14,15 +14,14 @@ export const isIOSEnvironment = () => {
  * @returns {string} L'URL de l'API sans slash final
  */
 export const getApiUrl = () => {
-  // Utiliser l'URL de l'environnement ou localhost par défaut
-  const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:3000";
-  
-  // Vérifier si on est dans un environnement iOS
-  if (isIOSEnvironment()) {
-    // Sur iOS, il est préférable d'utiliser l'adresse IP directe plutôt que localhost
+  // Priorité à la variable d'environnement, sinon URL Render par défaut
+  const apiUrl = import.meta.env.VITE_API_URL || "https://safehaven-hy8s.onrender.com";
+
+  // En dev iOS uniquement, si on pointe sur localhost on remappe vers 127.0.0.1
+  if (isIOSEnvironment() && /localhost|127\.0\.0\.1/.test(apiUrl)) {
     return "http://127.0.0.1:3000";
   }
-  
+
   return apiUrl;
 };
 

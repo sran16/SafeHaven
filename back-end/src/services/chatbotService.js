@@ -1,4 +1,6 @@
 import prisma from '../config/database.js';
+import nlpService from './nlpService.js';
+import languageService from './languageService.js';
 
 class ChatbotService {
     // Récupère la session active du jour pour un utilisateur
@@ -14,7 +16,8 @@ class ChatbotService {
                 startDate: {
                     gte: today,
                     lt: tomorrow
-                }
+                },
+                endDate: null
             },
             include: {
                 ia: true
@@ -35,6 +38,31 @@ class ChatbotService {
                     }
                 }
             }
+        });
+    }
+
+    // Termine la session active du jour (si présente)
+    async endSession(userId) {
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const tomorrow = new Date(today);
+        tomorrow.setDate(today.getDate() + 1);
+
+        const session = await prisma.chatbot_sessions.findFirst({
+            where: {
+                userId: userId,
+                startDate: { gte: today, lt: tomorrow },
+                endDate: null
+            }
+        });
+
+        if (!session) {
+            return null;
+        }
+
+        return await prisma.chatbot_sessions.update({
+            where: { id_session: session.id_session },
+            data: { endDate: new Date() }
         });
     }
 
@@ -73,6 +101,18 @@ class ChatbotService {
         }
     }
 
+    // Récupère la dernière session (par date de début desc)
+    async getLatestSession(userId) {
+        return await prisma.chatbot_sessions.findFirst({
+            where: { userId },
+            include: {
+                messages: { orderBy: { timestamp: 'asc' } },
+                ia: true
+            },
+            orderBy: { startDate: 'desc' }
+        });
+    }
+
     // Récupère l'historique des conversations
     async getConversationHistory(userId) {
         try {
@@ -102,6 +142,67 @@ class ChatbotService {
             console.error('Erreur détaillée lors de la récupération de l\'historique:', error);
             throw error;
         }
+    }
+
+    // Analyse de sentiment basée sur le dernier message utilisateur de la dernière session
+    async getSentimentAnalysis(userId) {
+        const latest = await this.getLatestSession(userId);
+        if (!latest || !latest.messages || latest.messages.length === 0) {
+            return { sentiment: 'neutral', distressLevel: 3 };
+        }
+        const lastUserMsg = [...latest.messages].reverse().find(m => m.isUserMessage);
+        if (!lastUserMsg) {
+            return { sentiment: 'neutral', distressLevel: 3 };
+        }
+        const sentiment = nlpService.analyzeSentiment(lastUserMsg.content);
+        const distress = nlpService.detectDistressAndEmergency(lastUserMsg.content);
+        return { sentiment, distressLevel: distress.distressLevel };
+    }
+
+    // Recommandations basées sur le dernier message utilisateur
+    async getRecommendations(userId) {
+        const latest = await this.getLatestSession(userId);
+        if (!latest || !latest.messages || latest.messages.length === 0) {
+            return { immediate: [], longTerm: [] };
+        }
+        const lastUserMsg = [...latest.messages].reverse().find(m => m.isUserMessage);
+        if (!lastUserMsg) {
+            return { immediate: [], longTerm: [] };
+        }
+        const distress = nlpService.detectDistressAndEmergency(lastUserMsg.content);
+        return nlpService.generateRecommendations(lastUserMsg.content, distress);
+    }
+
+    // Génère et sauvegarde un rapport pour la dernière session
+    async generateReport(userId) {
+        const latest = await this.getLatestSession(userId);
+        if (!latest) {
+            throw new Error('Aucune session trouvée');
+        }
+
+        const sessions = await this.getConversationHistory(userId);
+        const lastUserMsg = [...(latest.messages || [])].reverse().find(m => m.isUserMessage)?.content || '';
+        const lastAiMsg = [...(latest.messages || [])].reverse().find(m => !m.isUserMessage)?.content || '';
+        const language = languageService.detectConversationLanguage(lastUserMsg, sessions);
+
+        const distress = nlpService.detectDistressAndEmergency(lastUserMsg);
+        const reportData = {
+            distressLevel: distress.distressLevel,
+            emergency: distress.emergency,
+            sentiment: nlpService.analyzeSentiment(lastUserMsg),
+            topics: nlpService.extractTopics(lastUserMsg),
+            language: language,
+            immediateRecommendations: nlpService.generateRecommendations(lastUserMsg, distress).immediate,
+            longTermRecommendations: nlpService.generateRecommendations(lastUserMsg, distress).longTerm,
+            followUpNeeded: distress.distressLevel >= 3,
+            followUpUrgency: distress.distressLevel >= 4 ? 'high' : (distress.distressLevel >= 3 ? 'medium' : 'low'),
+            suggestedTiming: distress.distressLevel >= 4 ? '24h' : (distress.distressLevel >= 3 ? '48h' : '1 semaine'),
+            professionalNotes: nlpService.generateProfessionalNotes(lastUserMsg, distress, nlpService.extractTopics(lastUserMsg))
+        };
+
+        // Sauvegarder
+        const saved = await this.saveSessionReport(latest.id_session, reportData);
+        return saved;
     }
 
     // Sauvegarde un rapport de session

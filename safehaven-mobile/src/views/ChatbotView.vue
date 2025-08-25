@@ -8,7 +8,7 @@
     <!-- Zone de chat -->
     <div class="chat-messages" ref="chatWindow">
       <!-- Messages dynamiques -->
-      <template v-for="(message, index) in messages" :key="index">
+      <template v-for="message in messages" :key="message.timestamp">
         <Ia v-if="message.sender === 'bot'" :message="message.text" />
         <User v-else :message="message.text" :username="getUserName()" />
       </template>
@@ -65,7 +65,7 @@ const sendMessage = async () => {
   const userMessage = {
     text: messageText,
     sender: 'user',
-    timestamp: new Date()
+    timestamp: Date.now()
   }
 
   messages.value.push(userMessage)
@@ -116,7 +116,7 @@ const sendMessage = async () => {
     const botMessage = {
       text: response.data.data?.response || 'Désolé, je n\'ai pas compris votre message.',
       sender: 'bot',
-      timestamp: new Date()
+      timestamp: Date.now()
     }
 
     messages.value.push(botMessage)
@@ -261,6 +261,7 @@ onUnmounted(() => {
 
 /* Zone de messages */
 .chat-messages {
+  width: 100vw;
   flex: 1;
   padding: 0 24px;
   overflow-y: auto;
