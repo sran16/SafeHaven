@@ -221,7 +221,7 @@ Your unique goal: maintain a brief and natural conversation, like through text m
                 };
 
                 if (analysis.emergency) {
-                    response.emergencyResources = this.emergencyResources;
+                    response.emergencyResources = chatbotController.emergencyResources;
                 }
 
                 return successResponse(res, 200, 'Message processed successfully', response);
@@ -267,7 +267,7 @@ Your unique goal: maintain a brief and natural conversation, like through text m
                     const session = await chatbotService.saveConversation(userId, message, aiResponse);
                     
                     // Générer et sauvegarder le rapport automatiquement
-                    const sessionReport = await this.generateSessionReport(session.id_session, message, aiResponse, conversationLanguage);
+                    const sessionReport = await chatbotController.generateSessionReport(session.id_session, message, aiResponse, conversationLanguage);
                     await chatbotService.saveSessionReport(session.id_session, sessionReport);
                     
                     
@@ -280,7 +280,7 @@ Your unique goal: maintain a brief and natural conversation, like through text m
                 };
 
                 if (analysis.emergency) {
-                    responseData.emergencyResources = this.emergencyResources;
+                    responseData.emergencyResources = chatbotController.emergencyResources;
                 }
 
                 return successResponse(res, 200, 'Message processed successfully', responseData);
@@ -293,7 +293,7 @@ Your unique goal: maintain a brief and natural conversation, like through text m
                 };
 
                 if (analysis.emergency) {
-                    responseData.emergencyResources = this.emergencyResources;
+                    responseData.emergencyResources = chatbotController.emergencyResources;
                 }
 
                 return successResponse(res, 200, 'Fallback response', responseData);
