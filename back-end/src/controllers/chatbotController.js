@@ -214,7 +214,7 @@ Your unique goal: maintain a brief and natural conversation, like through text m
             const analysis = nlpService.detectDistressAndEmergency(message);
             
 
-            if (!this.OPENAI_API_KEY || !this.OPENAI_MODEL) {
+            if (!process.env.OPENAI_API_KEY || !process.env.OPENAI_MODEL) {
                 
                 const response = {
                     response: "Je suis là pour vous écouter et vous soutenir. Comment puis-je vous aider aujourd'hui ?"
