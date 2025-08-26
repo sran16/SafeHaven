@@ -110,7 +110,7 @@ app.listen(PORT, '0.0.0.0', async () => {
   // Nettoyage initial des sessions expirées
   try {
     await userService.cleanupExpiredSessions();
-    console.log('Nettoyage des sessions expirées effectué');
+    // console.log('Nettoyage des sessions expirées effectué');
   } catch (error) {
     console.error('Erreur lors du nettoyage initial:', error);
   }
@@ -119,7 +119,7 @@ app.listen(PORT, '0.0.0.0', async () => {
   setInterval(async () => {
     try {
       await userService.cleanupExpiredSessions();
-      console.log('Nettoyage automatique des sessions effectué');
+      // console.log('Nettoyage automatique des sessions effectué');
     } catch (error) {
       console.error('Erreur lors du nettoyage automatique:', error);
     }
