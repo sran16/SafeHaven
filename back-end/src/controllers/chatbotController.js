@@ -1,8 +1,7 @@
-import chatbotService from '../services/chatbotService.js';
+import chatbotService from '../services/ChatbotIA/chatbotService.js';
 import { successResponse, errorResponse } from '../utils/responses.js';
-import openAIService from '../services/openaiService.js';
-import languageService from '../services/languageService.js';
-import nlpService from '../services/nlpService.js';
+import openAIService from '../services/ChatbotIA/openaiService.js';
+import nlpService from '../services/ChatbotIA/nlpService.js';
 
 class ChatbotController {
     constructor() {
@@ -119,16 +118,29 @@ Goal: Brief, natural conversation like texting.`
 
             const conversationHistory = await chatbotService.getConversationHistory(userId);
             
-            // Détecter la langue de la conversation
-            const conversationLanguage = languageService.detectConversationLanguage(message, conversationHistory);
-            
-            
-            // Créer un prompt système adapté à la langue
-            const languageSpecificPrompt = languageService.createLanguageSpecificPrompt(conversationLanguage);
+            // TODO: Simplifier cette partie plus tard
+            // Utiliser un prompt système simple en anglais
+            const systemPrompt = {
+                role: 'system',
+                content: `You are Haven, a concise AI assistant for mental well-being. Always respond in English.
+
+Rules:
+- Keep responses to 1-2 sentences max
+- Use a friendly, conversational tone
+- Ask short, direct questions
+- No long explanations
+
+Examples:
+- "How are you feeling today?"
+- "What's worrying you?"
+- "Have you tried deep breathing?"
+
+Goal: Brief, natural conversation like texting.`
+            };
 
             try {
                 // Préparer les messages pour l'API
-                const messages = [languageSpecificPrompt];
+                const messages = [systemPrompt];
                 
                 // Extraire tous les messages de l'historique des sessions
                 if (conversationHistory && conversationHistory.length > 0) {
@@ -157,7 +169,7 @@ Goal: Brief, natural conversation like texting.`
                     const session = await chatbotService.saveConversation(userId, message, aiResponse);
                     
                     // Générer et sauvegarder le rapport automatiquement
-                    const sessionReport = await chatbotController.generateSessionReport(session.id_session, message, aiResponse, conversationLanguage);
+                    const sessionReport = await chatbotController.generateSessionReport(session.id_session, message, aiResponse, 'english');
                     await chatbotService.saveSessionReport(session.id_session, sessionReport);
                     
                     

@@ -57,33 +57,52 @@ class UserService {
     }
 
     async loginUser(name, password) {
+        console.log(' Début connexion utilisateur:', name);
+        const startTime = Date.now();
+        
         const user = await prisma.users.findFirst({
-            where: { name }
+            where: { name },
+            select: {
+                id_user: true,
+                name: true,
+                password: true 
+            }
         });
 
         if (!user) {
+            console.log(' Utilisateur non trouvé:', name);
             throw new Error('Utilisateur non trouvé');
         }
 
+        console.log(' Utilisateur trouvé en', Date.now() - startTime, 'ms');
+
+        // Vérification du mot de passe
+        const passwordStart = Date.now();
         const validPassword = await bcrypt.compare(password, user.password);
+        console.log(' Vérification mot de passe en', Date.now() - passwordStart, 'ms');
+        
         if (!validPassword) {
+            console.log(' Mot de passe incorrect pour:', name);
             throw new Error('Mot de passe incorrect');
         }
 
         // Session mobile longue pour accessibilité en cas de détresse
         const MOBILE_SESSION_DURATION = 24 * 60 * 60; // 24h en secondes
         
+        const tokenStart = Date.now();
         const token = jwt.sign(
             { userId: user.id_user },
             process.env.JWT_SECRET || 'votre_secret_jwt',
             { expiresIn: MOBILE_SESSION_DURATION }
         );
+        console.log(' Token généré en', Date.now() - tokenStart, 'ms');
 
         // Synchroniser l'expiration DB avec JWT
         const expiresAt = new Date(Date.now() + MOBILE_SESSION_DURATION * 1000);
 
-        // Créer une session active
-        await prisma.activeSessions.create({
+         //Création session en parallèle
+        const sessionStart = Date.now();
+        const sessionPromise = prisma.activeSessions.create({
             data: {
                 token: token,
                 userId: user.id_user,
@@ -92,7 +111,12 @@ class UserService {
             }
         });
 
+        // Attendre la création de session
+        await sessionPromise;
+        console.log(' Session créée en', Date.now() - sessionStart, 'ms');
 
+        const totalTime = Date.now() - startTime;
+        console.log(' Connexion réussie en', totalTime, 'ms');
 
         return {
             user: {

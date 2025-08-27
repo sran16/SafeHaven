@@ -42,7 +42,7 @@ class AnswerService {
         try {
             const answers = await prisma.answers.findMany({
                 where: {
-                    experienceId: experienceId  // Utilisation directe de experienceId
+                    experienceId: experienceId  
                 },
                 include: {
                     user: true

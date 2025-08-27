@@ -14,13 +14,36 @@ const authMiddleware = async (req, res, next) => {
     }
 
     const token = authHeader.split(' ')[1];
+    
+    //  Vérification JWT et session en une seule requête
+    const startTime = Date.now();
+    
+    // Vérifier JWT d'abord 
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
     
-    // Vérifier si la session est active
+    // Vérifier si la session est active avec les données utilisateur
     const activeSession = await prisma.activeSessions.findUnique({
-      where: { token: token },
-      include: { user: true }
+      where: { 
+        token: token,
+        isActive: true,
+        expiresAt: {
+          gt: new Date() // Session non expirée
+        }
+      },
+      include: { 
+        user: {
+          select: {
+            id_user: true,
+            name: true
+          }
+        } 
+      }
     });
+
+    const authTime = Date.now() - startTime;
+    if (authTime > 100) { // Log seulement si > 100ms
+      console.log(' Auth middleware:', authTime, 'ms');
+    }
 
     if (!activeSession) {
       return res.status(401).json({
@@ -29,30 +52,11 @@ const authMiddleware = async (req, res, next) => {
       });
     }
 
-    if (!activeSession.isActive) {
-      return res.status(401).json({
-        success: false,
-        message: 'Session fermée'
-      });
-    }
-
-    // Vérifier si la session n'est pas expirée
-    if (new Date() > activeSession.expiresAt) {
-      // Désactiver automatiquement la session expirée
-      await prisma.activeSessions.update({
-        where: { id: activeSession.id },
-        data: { isActive: false }
-      });
-      return res.status(401).json({
-        success: false,
-        message: 'Session expirée'
-      });
-    }
     req.user = activeSession.user;
     req.sessionId = activeSession.id; // Pour pouvoir gérer la session plus tard
     next();
   } catch (error) {
-    console.error('Erreur d\'authentification détaillée:', error);
+    console.error(' Erreur d\'authentification:', error.message);
     return res.status(401).json({
       success: false,
       message: 'Token invalide ou expiré'

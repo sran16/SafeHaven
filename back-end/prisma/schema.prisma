@@ -21,6 +21,7 @@ model Users {
   activeSessions    ActiveSessions[]
 
   @@index([email])
+  @@index([name])
   @@index([registration_Date])
 }
 

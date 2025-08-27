@@ -1,6 +1,5 @@
-import prisma from '../config/database.js';
+import prisma from '../../config/database.js';
 import nlpService from './nlpService.js';
-import languageService from './languageService.js';
 
 class ChatbotService {
     // Récupère la session active du jour pour un utilisateur
@@ -183,7 +182,8 @@ class ChatbotService {
         const sessions = await this.getConversationHistory(userId);
         const lastUserMsg = [...(latest.messages || [])].reverse().find(m => m.isUserMessage)?.content || '';
         const lastAiMsg = [...(latest.messages || [])].reverse().find(m => !m.isUserMessage)?.content || '';
-        const language = languageService.detectConversationLanguage(lastUserMsg, sessions);
+        // TODO: Simplifier cette partie plus tard
+        const language = 'english';
 
         const distress = nlpService.detectDistressAndEmergency(lastUserMsg);
         const reportData = {
