@@ -6,7 +6,7 @@ class NLPService {
         const emergencyWords = ['suicide', 'mourir', 'tuer', 'urgent', 'panique', 'mort', 'finir', 'disparaître'];
         
         // Mots de détresse élevée (niveau 4)
-        const highDistressWords = ['triste', 'déprimé', 'anxieux', 'stress', 'mal', 'désespéré', 'perdu', 'seul', 'abandonné'];
+        const highDistressWords = ['triste', 'déprimé', 'depression', 'anxieux', 'stress', 'mal', 'désespéré', 'perdu', 'seul', 'abandonné'];
         
         // Mots de détresse modérée (niveau 3)
         const moderateDistressWords = ['fatigué', 'épuisé', 'inquiet', 'nerveux', 'tendu', 'souci', 'problème'];
@@ -100,7 +100,7 @@ class NLPService {
         
         // Mots négatifs étendus
         const negativeWords = [
-            'burnout', 'stress', 'anxiété', 'déprimé', 'triste', 'fatigué', 'mal', 'difficile', 'problème',
+            'burnout', 'stress', 'anxiété', 'déprimé', 'depression', 'triste', 'fatigué', 'mal', 'difficile', 'problème',
             'inquiet', 'nerveux', 'tendu', 'souci', 'peur', 'angoisse', 'désespoir', 'solitude', 'abandon',
             'échec', 'raté', 'nul', 'horrible', 'terrible', 'insupportable', 'impossible'
         ];

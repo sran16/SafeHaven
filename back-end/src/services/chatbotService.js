@@ -207,27 +207,37 @@ class ChatbotService {
 
     // Sauvegarde un rapport de session
     async saveSessionReport(sessionId, reportData) {
-        try {
-            return await prisma.session_Reports.create({
-                data: {
-                    sessionId: sessionId,
-                    distressLevel: reportData.distressLevel,
-                    emergency: reportData.emergency,
-                    sentiment: reportData.sentiment,
-                    topics: reportData.topics,
-                    language: reportData.language,
-                    immediateRecommendations: reportData.immediateRecommendations,
-                    longTermRecommendations: reportData.longTermRecommendations,
-                    followUpNeeded: reportData.followUpNeeded,
-                    followUpUrgency: reportData.followUpUrgency,
-                    suggestedTiming: reportData.suggestedTiming,
-                    professionalNotes: reportData.professionalNotes
-                }
-            });
-        } catch (error) {
-            console.error('Erreur lors de la sauvegarde du rapport:', error);
-            throw error;
-        }
+        // Un seul rapport par session : on crée au 1er message, on met à jour ensuite
+        return prisma.session_Reports.upsert({
+            where: { sessionId }, // field unique existant → OK pour upsert
+            create: {
+                sessionId,
+                distressLevel: reportData.distressLevel,
+                emergency: reportData.emergency,
+                sentiment: reportData.sentiment,
+                topics: reportData.topics,
+                language: reportData.language,
+                immediateRecommendations: reportData.immediateRecommendations,
+                longTermRecommendations: reportData.longTermRecommendations,
+                followUpNeeded: reportData.followUpNeeded,
+                followUpUrgency: reportData.followUpUrgency,
+                suggestedTiming: reportData.suggestedTiming,
+                professionalNotes: reportData.professionalNotes
+            },
+            update: {
+                distressLevel: reportData.distressLevel,
+                emergency: reportData.emergency,
+                sentiment: reportData.sentiment,
+                topics: reportData.topics,
+                language: reportData.language,
+                immediateRecommendations: reportData.immediateRecommendations,
+                longTermRecommendations: reportData.longTermRecommendations,
+                followUpNeeded: reportData.followUpNeeded,
+                followUpUrgency: reportData.followUpUrgency,
+                suggestedTiming: reportData.suggestedTiming,
+                professionalNotes: reportData.professionalNotes
+            }
+        });
     }
 
     // Récupère tous les rapports d'un utilisateur
