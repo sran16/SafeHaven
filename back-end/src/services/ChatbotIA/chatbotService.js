@@ -5,22 +5,17 @@ class ChatbotService {
     // Récupère la session active du jour pour un utilisateur
     async getActiveSession(userId) {
         const today = new Date();
-        today.setHours(0, 0, 0, 0); // début de la journée
+        today.setHours(0, 0, 0, 0);
         const tomorrow = new Date(today);
         tomorrow.setDate(today.getDate() + 1);
 
         return await prisma.chatbot_sessions.findFirst({
             where: {
                 userId: userId,
-                startDate: {
-                    gte: today,
-                    lt: tomorrow
-                },
+                startDate: { gte: today, lt: tomorrow },
                 endDate: null
             },
-            include: {
-                ia: true
-            }
+            include: { ia: true }
         });
     }
 
@@ -143,34 +138,43 @@ class ChatbotService {
         }
     }
 
-    // Analyse de sentiment basée sur le dernier message utilisateur de la dernière session
-    async getSentimentAnalysis(userId) {
+    // Analyse complète basée sur le dernier message utilisateur
+    async analyzeLastMessage(userId) {
         const latest = await this.getLatestSession(userId);
         if (!latest || !latest.messages || latest.messages.length === 0) {
-            return { sentiment: 'neutral', distressLevel: 3 };
+            return {
+                sentiment: 'neutral',
+                distressLevel: 3,
+                recommendations: { immediate: [], longTerm: [] }
+            };
         }
+        
         const lastUserMsg = [...latest.messages].reverse().find(m => m.isUserMessage);
         if (!lastUserMsg) {
-            return { sentiment: 'neutral', distressLevel: 3 };
+            return {
+                sentiment: 'neutral',
+                distressLevel: 3,
+                recommendations: { immediate: [], longTerm: [] }
+            };
         }
-        const sentiment = nlpService.analyzeSentiment(lastUserMsg.content);
-        const distress = nlpService.detectDistressAndEmergency(lastUserMsg.content);
-        return { sentiment, distressLevel: distress.distressLevel };
+
+        // UNE SEULE ANALYSE pour tout
+        const message = lastUserMsg.content;
+        const distress = nlpService.detectDistressAndEmergency(message);
+        const sentiment = nlpService.analyzeSentiment(message);
+        const topics = nlpService.extractTopics(message);
+        const recommendations = nlpService.generateRecommendations(message, distress);
+
+        return {
+            sentiment,
+            distressLevel: distress.distressLevel,
+            emergency: distress.emergency,
+            topics,
+            recommendations
+        };
     }
 
-    // Recommandations basées sur le dernier message utilisateur
-    async getRecommendations(userId) {
-        const latest = await this.getLatestSession(userId);
-        if (!latest || !latest.messages || latest.messages.length === 0) {
-            return { immediate: [], longTerm: [] };
-        }
-        const lastUserMsg = [...latest.messages].reverse().find(m => m.isUserMessage);
-        if (!lastUserMsg) {
-            return { immediate: [], longTerm: [] };
-        }
-        const distress = nlpService.detectDistressAndEmergency(lastUserMsg.content);
-        return nlpService.generateRecommendations(lastUserMsg.content, distress);
-    }
+
 
     // Génère et sauvegarde un rapport pour la dernière session
     async generateReport(userId) {
@@ -179,25 +183,22 @@ class ChatbotService {
             throw new Error('Aucune session trouvée');
         }
 
-        const sessions = await this.getConversationHistory(userId);
+        // ✅ PAS DE DUPLICATION : On utilise directement l'analyse existante
+        const analysis = await this.analyzeLastMessage(userId);
         const lastUserMsg = [...(latest.messages || [])].reverse().find(m => m.isUserMessage)?.content || '';
-        const lastAiMsg = [...(latest.messages || [])].reverse().find(m => !m.isUserMessage)?.content || '';
-        // TODO: Simplifier cette partie plus tard
-        const language = 'english';
-
-        const distress = nlpService.detectDistressAndEmergency(lastUserMsg);
+        
         const reportData = {
-            distressLevel: distress.distressLevel,
-            emergency: distress.emergency,
-            sentiment: nlpService.analyzeSentiment(lastUserMsg),
-            topics: nlpService.extractTopics(lastUserMsg),
-            language: language,
-            immediateRecommendations: nlpService.generateRecommendations(lastUserMsg, distress).immediate,
-            longTermRecommendations: nlpService.generateRecommendations(lastUserMsg, distress).longTerm,
-            followUpNeeded: distress.distressLevel >= 3,
-            followUpUrgency: distress.distressLevel >= 4 ? 'high' : (distress.distressLevel >= 3 ? 'medium' : 'low'),
-            suggestedTiming: distress.distressLevel >= 4 ? '24h' : (distress.distressLevel >= 3 ? '48h' : '1 semaine'),
-            professionalNotes: nlpService.generateProfessionalNotes(lastUserMsg, distress, nlpService.extractTopics(lastUserMsg))
+            distressLevel: analysis.distressLevel,
+            emergency: analysis.emergency,
+            sentiment: analysis.sentiment,
+            topics: analysis.topics,
+            language: 'english',
+            immediateRecommendations: analysis.recommendations.immediate,
+            longTermRecommendations: analysis.recommendations.longTerm,
+            followUpNeeded: analysis.distressLevel >= 3,
+            followUpUrgency: analysis.distressLevel >= 4 ? 'high' : (analysis.distressLevel >= 3 ? 'medium' : 'low'),
+            suggestedTiming: analysis.distressLevel >= 4 ? '24h' : (analysis.distressLevel >= 3 ? '48h' : '1 week'),
+            professionalNotes: nlpService.generateProfessionalNotes(lastUserMsg, { distressLevel: analysis.distressLevel, emergency: analysis.emergency }, analysis.topics)
         };
 
         // Sauvegarder
@@ -209,7 +210,7 @@ class ChatbotService {
     async saveSessionReport(sessionId, reportData) {
         // Un seul rapport par session : on crée au 1er message, on met à jour ensuite
         return prisma.session_Reports.upsert({
-            where: { sessionId }, // field unique existant → OK pour upsert
+            where: { sessionId }, 
             create: {
                 sessionId,
                 distressLevel: reportData.distressLevel,
@@ -242,51 +243,14 @@ class ChatbotService {
 
     // Récupère tous les rapports d'un utilisateur
     async getUserReports(userId) {
-        try {
-            return await prisma.session_Reports.findMany({
-                where: {
-                    session: {
-                        userId: userId
-                    }
-                },
-                include: {
-                    session: {
-                        include: {
-                            messages: true
-                        }
-                    }
-                },
-                orderBy: {
-                    createdAt: 'desc'
-                }
-            });
-        } catch (error) {
-            console.error('Erreur lors de la récupération des rapports:', error);
-            throw error;
-        }
+        return await prisma.session_Reports.findMany({
+            where: { session: { userId: userId } },
+            include: { session: { include: { messages: true } } },
+            orderBy: { createdAt: 'desc' }
+        });
     }
 
-    // Récupère un rapport spécifique
-    async getReportById(reportId) {
-        try {
-            return await prisma.session_Reports.findUnique({
-                where: {
-                    id_report: reportId
-                },
-                include: {
-                    session: {
-                        include: {
-                            messages: true,
-                            user: true
-                        }
-                    }
-                }
-            });
-        } catch (error) {
-            console.error('Erreur lors de la récupération du rapport:', error);
-            throw error;
-        }
-    }
+
 }
 
 export default new ChatbotService(); 

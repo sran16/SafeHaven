@@ -19,66 +19,12 @@ class ChatbotController {
             ]
         };
 
-        this.systemPrompt = {
-            role: "system",
-            content: `You are Haven, a concise AI assistant for mental well-being. Always respond in the same language as the user.
 
-Rules:
-- Keep responses to 1-2 sentences max
-- Use a friendly, conversational tone
-- Ask short, direct questions
-- No long explanations
-- Match the user's language (French/English)
-
-Examples:
-French: "Comment te sens-tu aujourd'hui ?" "Qu'est-ce qui t'inquiète ?"
-English: "How are you feeling today?" "What's worrying you?"
-
-Goal: Brief, natural conversation like texting.`
-        };
-    }
-
-
-
-    getWellnessExercise(type) {
-        return nlpService.getWellnessExercise(type);
     }
 
 
 
 
-    async startSession(req, res) {
-        try {
-            const session = await chatbotService.createSession(req.user.id_user);
-            return successResponse(res, 201, 'Session started successfully', session);
-        } catch (error) {
-            return errorResponse(res, 400, error.message);
-        }
-    }
-
-    async getHistory(req, res) {
-        try {
-            const { userId } = req.params;
-            
-
-            const session = await chatbotService.getConversationHistory(userId);
-            
-            return successResponse(res, 200, 'Conversation history retrieved', {
-                history: session
-            });
-        } catch (error) {
-            return errorResponse(res, 500, error.message);
-        }
-    }
-
-    async endSession(req, res) {
-        try {
-            const session = await chatbotService.endSession(req.user.id_user);
-            return successResponse(res, 200, 'Session ended successfully', session);
-        } catch (error) {
-            return errorResponse(res, 400, error.message);
-        }
-    }
 
     async processMessage(req, res) {
         try {
@@ -99,19 +45,11 @@ Goal: Brief, natural conversation like texting.`
                 // Continue même si la session pose problème
             }
 
-            // Analyser le message pour détecter la détresse
-            const analysis = nlpService.detectDistressAndEmergency(message);
-            
-
             if (!process.env.OPENAI_API_KEY || !process.env.OPENAI_MODEL) {
                 
                 const response = {
                     response: "Je suis là pour vous écouter et vous soutenir. Comment puis-je vous aider aujourd'hui ?"
                 };
-
-                if (analysis.emergency) {
-                    response.emergencyResources = chatbotController.emergencyResources;
-                }
 
                 return successResponse(res, 200, 'Message processed successfully', response);
             }
@@ -169,8 +107,7 @@ Goal: Brief, natural conversation like texting.`
                     const session = await chatbotService.saveConversation(userId, message, aiResponse);
                     
                     // Générer et sauvegarder le rapport automatiquement
-                    const sessionReport = await chatbotController.generateSessionReport(session.id_session, message, aiResponse, 'english');
-                    await chatbotService.saveSessionReport(session.id_session, sessionReport);
+                    await chatbotService.generateReport(userId);
                     
                     
                 } catch (saveError) {
@@ -181,10 +118,6 @@ Goal: Brief, natural conversation like texting.`
                     response: aiResponse
                 };
 
-                if (analysis.emergency) {
-                    responseData.emergencyResources = chatbotController.emergencyResources;
-                }
-
                 return successResponse(res, 200, 'Message processed successfully', responseData);
 
             } catch (openaiError) {
@@ -193,10 +126,6 @@ Goal: Brief, natural conversation like texting.`
                 const responseData = {
                     response: "Je suis désolé, j'ai du mal à traiter votre message pour le moment. Je suis là pour vous écouter et vous soutenir. Comment puis-je vous aider aujourd'hui ?"
                 };
-
-                if (analysis.emergency) {
-                    responseData.emergencyResources = chatbotController.emergencyResources;
-                }
 
                 return successResponse(res, 200, 'Fallback response', responseData);
             }
@@ -209,25 +138,17 @@ Goal: Brief, natural conversation like texting.`
     async getConversationHistory(req, res) {
         try {
             const userId = req.user.id_user;
-            
-            
             const sessions = await chatbotService.getConversationHistory(userId);
             
-            // Transformer les sessions pour le format attendu par le frontend
             const formattedSessions = sessions.map(session => {
-                // Trouver le premier message de l'utilisateur
                 const firstUserMessage = session.messages.find(msg => msg.isUserMessage);
-                
-                // S'assurer que la date est valide
                 const sessionDate = session.startDate ? new Date(session.startDate) : new Date();
-                
-                // Formater la date pour le groupement
                 const formattedDate = sessionDate.toISOString().split('T')[0];
                 
                 return {
                     id: session.id_session,
                     date: formattedDate,
-                    preview: firstUserMessage ? firstUserMessage.content.substring(0, 50) + (firstUserMessage.content.length > 50 ? '...' : '') : 'Nouvelle conversation',
+                    preview: firstUserMessage ? firstUserMessage.content.substring(0, 50) + (firstUserMessage.content.length > 50 ? '...' : '') : 'New conversation',
                     messages: session.messages.map(msg => ({
                         id: msg.id_message,
                         content: msg.content,
@@ -237,7 +158,7 @@ Goal: Brief, natural conversation like texting.`
                 };
             });
             
-            // Grouper les sessions par date
+            // Grouper par date
             const groupedSessions = formattedSessions.reduce((acc, session) => {
                 if (!acc[session.date]) {
                     acc[session.date] = [];
@@ -246,7 +167,6 @@ Goal: Brief, natural conversation like texting.`
                 return acc;
             }, {});
             
-            // Convertir en tableau et trier par date (du plus récent au plus ancien)
             const sortedSessions = Object.entries(groupedSessions)
                 .sort(([dateA], [dateB]) => new Date(dateB) - new Date(dateA))
                 .map(([date, sessions]) => ({
@@ -254,17 +174,19 @@ Goal: Brief, natural conversation like texting.`
                     sessions
                 }));
             
-            return successResponse(res, 200, 'Historique récupéré avec succès', sortedSessions);
+            return successResponse(res, 200, 'Conversation history retrieved successfully', sortedSessions);
         } catch (error) {
-            console.error('Erreur lors de la récupération de l\'historique:', error);
-            return errorResponse(res, 500, 'Erreur lors de la récupération de l\'historique');
+            return errorResponse(res, 500, error.message);
         }
     }
 
     async getSentimentAnalysis(req, res) {
         try {
-            const analysis = await chatbotService.getSentimentAnalysis(req.user.id_user);
-            return successResponse(res, 200, 'Sentiment analysis retrieved successfully', analysis);
+            const analysis = await chatbotService.analyzeLastMessage(req.user.id_user);
+            return successResponse(res, 200, 'Sentiment analysis retrieved successfully', {
+                sentiment: analysis.sentiment,
+                distressLevel: analysis.distressLevel
+            });
         } catch (error) {
             return errorResponse(res, 400, error.message);
         }
@@ -272,8 +194,8 @@ Goal: Brief, natural conversation like texting.`
 
     async getRecommendations(req, res) {
         try {
-            const recommendations = await chatbotService.getRecommendations(req.user.id_user);
-            return successResponse(res, 200, 'Recommendations retrieved successfully', recommendations);
+            const analysis = await chatbotService.analyzeLastMessage(req.user.id_user);
+            return successResponse(res, 200, 'Recommendations retrieved successfully', analysis.recommendations);
         } catch (error) {
             return errorResponse(res, 400, error.message);
         }
@@ -288,44 +210,7 @@ Goal: Brief, natural conversation like texting.`
         }
     }
 
-    // Génère un rapport de session automatiquement
-    async generateSessionReport(sessionId, userMessage, aiResponse, language) {
-        const timestamp = new Date();
-        const distressAnalysis = nlpService.detectDistressAndEmergency(userMessage);
-        
-        // Extraire les thèmes du message
-        const topics = nlpService.extractTopics(userMessage);
-        
-        // Analyser le sentiment
-        const sentiment = nlpService.analyzeSentiment(userMessage);
-        
-        // Générer les recommandations
-        const recommendations = nlpService.generateRecommendations(userMessage, distressAnalysis);
-        
-        // Déterminer si un suivi est nécessaire
-        const followUpNeeded = distressAnalysis.distressLevel >= 3;
-        const followUpUrgency = distressAnalysis.distressLevel >= 4 ? 'high' : 
-                               distressAnalysis.distressLevel >= 3 ? 'medium' : 'low';
-        const suggestedTiming = distressAnalysis.distressLevel >= 4 ? '24h' : 
-                               distressAnalysis.distressLevel >= 3 ? '48h' : '1 semaine';
-        
-        // Générer les notes professionnelles
-        const professionalNotes = nlpService.generateProfessionalNotes(userMessage, distressAnalysis, topics);
-        
-        return {
-            distressLevel: distressAnalysis.distressLevel,
-            emergency: distressAnalysis.emergency,
-            sentiment: sentiment,
-            topics: topics,
-            language: language,
-            immediateRecommendations: recommendations.immediate,
-            longTermRecommendations: recommendations.longTerm,
-            followUpNeeded: followUpNeeded,
-            followUpUrgency: followUpUrgency,
-            suggestedTiming: suggestedTiming,
-            professionalNotes: professionalNotes
-        };
-    }
+
 
 
 
@@ -343,23 +228,7 @@ Goal: Brief, natural conversation like texting.`
         }
     }
 
-    // Récupère un rapport de session spécifique
-    async getSessionReportById(req, res) {
-        try {
-            const reportId = parseInt(req.params.reportId);
-            const report = await chatbotService.getReportById(reportId);
-            
-            if (!report) {
-                return errorResponse(res, 404, 'Report not found');
-            }
-            
-            return successResponse(res, 200, 'Session report retrieved successfully', {
-                report: report
-            });
-        } catch (error) {
-            return errorResponse(res, 500, error.message);
-        }
-    }
+
 }
 
 const chatbotController = new ChatbotController();

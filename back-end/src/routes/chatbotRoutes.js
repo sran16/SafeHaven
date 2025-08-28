@@ -7,9 +7,7 @@ const router = express.Router();
 // Routes protégées par l'authentification
 router.use(authMiddleware);
 
-// Sessions de chat 
-router.post('/sessions', chatbotController.startSession); // start session
-router.delete('/sessions/current', chatbotController.endSession); // end current session
+// Sessions de chat - Gestion automatique dans processMessage
 router.get('/sessions', chatbotController.getConversationHistory); // list sessions/history
 // Messages 
 router.post('/sessions/current/messages', chatbotController.processMessage); // send message in current session
@@ -21,6 +19,5 @@ router.get('/sessions/current/report', chatbotController.generateReport);
 
 // Rapports de session 
 router.get('/sessions/reports', chatbotController.getSessionReports);
-router.get('/sessions/reports/:reportId', chatbotController.getSessionReportById);
 
 export default router; 

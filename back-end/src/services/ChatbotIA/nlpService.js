@@ -1,18 +1,24 @@
 class NLPService {
+    //  DICTIONNAIRE 
+    constructor() {
+        this.wordCategories = {
+            emergency: ['suicide', 'kill', 'die', 'death', 'end', 'disappear', 'urgent', 'panic'],
+            highDistress: ['sad', 'depressed', 'depression', 'anxious', 'stress', 'bad', 'sick', 'desperate', 'lost', 'alone', 'abandoned', 'hopeless'],
+            moderateDistress: ['tired', 'exhausted', 'worried', 'nervous', 'tense', 'concerned', 'problem', 'difficult'],
+            wellness: ['good', 'better', 'happy', 'satisfied', 'positive', 'calm', 'peaceful', 'relaxed'],
+            negative: ['burnout', 'stress', 'anxiety', 'depressed', 'depression', 'sad', 'tired', 'bad', 'difficult', 'problem', 'worried', 'nervous', 'tense', 'concerned', 'fear', 'panic', 'hopeless', 'lonely', 'abandoned', 'failure', 'failed', 'terrible', 'horrible', 'awful', 'unbearable', 'impossible'],
+            positive: ['good', 'better', 'happy', 'satisfied', 'positive', 'calm', 'peaceful', 'joy', 'pleasure', 'successful', 'proud', 'confident', 'optimistic', 'energetic', 'motivated', 'rested', 'relaxed', 'peaceful', 'grateful', 'lucky', 'blessed']
+        };
+    }
+
     detectDistressAndEmergency(message) {
         const lowercaseMessage = message.toLowerCase();
         
-        // Mots d'urgence (niveau 5)
-        const emergencyWords = ['suicide', 'mourir', 'tuer', 'urgent', 'panique', 'mort', 'finir', 'disparaître'];
-        
-        // Mots de détresse élevée (niveau 4)
-        const highDistressWords = ['triste', 'déprimé', 'depression', 'anxieux', 'stress', 'mal', 'désespéré', 'perdu', 'seul', 'abandonné'];
-        
-        // Mots de détresse modérée (niveau 3)
-        const moderateDistressWords = ['fatigué', 'épuisé', 'inquiet', 'nerveux', 'tendu', 'souci', 'problème'];
-        
-        // Mots de bien-être (niveau 1-2)
-        const wellnessWords = ['bien', 'mieux', 'content', 'heureux', 'satisfait', 'bon', 'positif', 'calme', 'serein'];
+        // Utilise le dictionnaire
+        const emergencyWords = this.wordCategories.emergency;
+        const highDistressWords = this.wordCategories.highDistress;
+        const moderateDistressWords = this.wordCategories.moderateDistress;
+        const wellnessWords = this.wordCategories.wellness;
         
         const hasEmergency = emergencyWords.some(word => lowercaseMessage.includes(word));
         const hasHighDistress = highDistressWords.some(word => lowercaseMessage.includes(word));
@@ -27,70 +33,50 @@ class NLPService {
         else if (hasWellness) distressLevel = 2;
         else distressLevel = 1; // Si aucun mot détecté, considérer comme neutre
         
-        console.log('🔍 ANALYSE DÉTRESSE:', {
-            message: message,
-            hasEmergency,
-            hasHighDistress,
-            hasModerateDistress,
-            hasWellness,
-            distressLevel
-        });
+        // console.log(' ANALYSE DÉTRESSE:', {
+        //     message: message,
+        //     hasEmergency,
+        //     hasHighDistress,
+        //     hasModerateDistress,
+        //     hasWellness,
+        //     distressLevel
+        // });
         
         return { emergency: hasEmergency, distressLevel };
     }
 
-    getWellnessExercise(type) {
-        const wellnessExercises = {
-            breathing: [
-                'Respirez en 4-7-8 : Inspirez sur 4 temps, retenez sur 7, expirez sur 8',
-                'Respiration carrée : Inspirez 4s, retenez 4s, expirez 4s, attendez 4s',
-                'Cohérence cardiaque : Respirez 6 fois par minute pendant 5 minutes'
-            ],
-            meditation: [
-                'Scan corporel : Portez attention à chaque partie de votre corps',
-                'Méditation de pleine conscience : Observez vos pensées sans jugement',
-                "Ancrage dans le présent : Notez 5 choses que vous voyez, 4 que vous touchez..."
-            ],
-            grounding: [
-                'Technique 5-4-3-2-1 : Observez 5 choses visibles, 4 tactiles...',
-                'Marche consciente : Concentrez-vous sur chaque pas',
-                'Contact avec la nature : Touchez un arbre, marchez pieds nus...'
-            ]
-        };
-        const exercises = wellnessExercises[type] || [];
-        return exercises[Math.floor(Math.random() * exercises.length)] || '';
-    }
+
 
     extractTopics(message) {
         const topics = [];
         const lowerMessage = message.toLowerCase();
         
-        // Thèmes étendus avec plus de mots-clés
+        //  Utilise le dictionnaire + mots spécifiques aux thèmes
         const topicKeywords = {
-            'burnout': ['burnout', 'épuisement', 'épuisé', 'surmené', 'surchargé'],
-            'stress': ['stress', 'anxiété', 'anxious', 'tendu', 'nerveux', 'inquiet'],
-            'work': ['travail', 'work', 'boulot', 'bureau', 'collègue', 'patron', 'salaire'],
-            'sleep': ['sommeil', 'sleep', 'dormir', 'insomnie', 'réveil', 'nuit'],
-            'depression': ['déprimé', 'depressed', 'triste', 'mélancolie', 'désespoir', 'vide'],
-            'suicide': ['suicide', 'mourir', 'tuer', 'mort', 'finir', 'disparaître'],
-            'relationships': ['relation', 'couple', 'mari', 'femme', 'ami', 'famille', 'parent'],
-            'health': ['santé', 'maladie', 'douleur', 'fatigue', 'migraine', 'dos'],
-            'money': ['argent', 'money', 'finances', 'dette', 'facture', 'pauvre'],
-            'social': ['social', 'amis', 'sortir', 'fête', 'solitude', 'isolement']
+            'burnout': ['burnout', 'exhausted', 'overwhelmed', 'overworked'],
+            'stress': this.wordCategories.highDistress.filter(word => ['stress', 'anxiety', 'anxious', 'tense', 'nervous', 'worried'].includes(word)),
+            'work': ['work', 'job', 'office', 'colleague', 'boss', 'salary', 'career'],
+            'sleep': ['sleep', 'insomnia', 'tired', 'rest', 'night', 'bed'],
+            'depression': this.wordCategories.highDistress.filter(word => ['depressed', 'sad', 'melancholy', 'hopeless', 'empty', 'down'].includes(word)),
+            'suicide': this.wordCategories.emergency.filter(word => ['suicide', 'kill', 'die', 'death', 'end', 'disappear'].includes(word)),
+            'relationships': ['relationship', 'couple', 'husband', 'wife', 'friend', 'family', 'parent'],
+            'health': ['health', 'sick', 'pain', 'fatigue', 'migraine', 'back', 'illness'],
+            'money': ['money', 'finance', 'debt', 'bill', 'poor', 'financial'],
+            'social': ['social', 'friends', 'party', 'lonely', 'isolated', 'alone']
         };
         
         // Vérifier chaque thème
         Object.entries(topicKeywords).forEach(([topic, keywords]) => {
             if (keywords.some(keyword => lowerMessage.includes(keyword))) {
                 topics.push(topic);
-                console.log(`  🏷️ Thème détecté: "${topic}"`);
+                // console.log(`Thème détecté: "${topic}"`);
             }
         });
         
-        console.log('🏷️ THÈMES DÉTECTÉS:', {
-            message: message,
-            topics: topics.length > 0 ? topics : ['general']
-        });
+        // console.log('THÈMES DÉTECTÉS:', {
+        //     message: message,
+        //     topics: topics.length > 0 ? topics : ['general']
+        // });
         
         return topics.length > 0 ? topics : ['general'];
     }
@@ -98,19 +84,9 @@ class NLPService {
     analyzeSentiment(message) {
         const lowerMessage = message.toLowerCase();
         
-        // Mots négatifs étendus
-        const negativeWords = [
-            'burnout', 'stress', 'anxiété', 'déprimé', 'depression', 'triste', 'fatigué', 'mal', 'difficile', 'problème',
-            'inquiet', 'nerveux', 'tendu', 'souci', 'peur', 'angoisse', 'désespoir', 'solitude', 'abandon',
-            'échec', 'raté', 'nul', 'horrible', 'terrible', 'insupportable', 'impossible'
-        ];
-        
-        // Mots positifs étendus
-        const positiveWords = [
-            'bien', 'mieux', 'content', 'heureux', 'satisfait', 'bon', 'positif', 'calme', 'serein',
-            'joie', 'plaisir', 'réussi', 'fier', 'confiant', 'optimiste', 'énergique', 'motivé',
-            'reposé', 'détendu', 'apaisé', 'reconnaissant', 'chanceux', 'béni'
-        ];
+        // Utilise le dictionnaire 
+        const negativeWords = this.wordCategories.negative;
+        const positiveWords = this.wordCategories.positive;
         
         let negativeCount = 0;
         let positiveCount = 0;
@@ -118,25 +94,25 @@ class NLPService {
         negativeWords.forEach(word => { 
             if (lowerMessage.includes(word)) {
                 negativeCount++;
-                console.log(`  - Mot négatif détecté: "${word}"`);
+                // console.log(`Mot négatif détecté: "${word}"`);
             }
         });
         
         positiveWords.forEach(word => { 
             if (lowerMessage.includes(word)) {
                 positiveCount++;
-                console.log(`  + Mot positif détecté: "${word}"`);
+                // console.log(`Positive word detected: "${word}"`);
             }
         });
         
         const sentiment = negativeCount > positiveCount ? 'negative' : (positiveCount > negativeCount ? 'positive' : 'neutral');
         
-        console.log('😊 ANALYSE SENTIMENT:', {
-            message: message,
-            negativeCount,
-            positiveCount,
-            sentiment
-        });
+        // console.log(' ANALYSE SENTIMENT:', {
+        //     message: message,
+        //     negativeCount,
+        //     positiveCount,
+        //     sentiment
+        // });
         
         return sentiment;
     }
@@ -145,31 +121,31 @@ class NLPService {
         const immediate = [];
         const longTerm = [];
         if (distressAnalysis.distressLevel >= 4) {
-            immediate.push('Exercices de respiration 4-7-8');
-            immediate.push('Prendre une pause immédiate');
-            longTerm.push('Consulter un psychologue (URGENT)');
+            immediate.push('4-7-8 breathing exercises');
+            immediate.push('Take an immediate break');
+            longTerm.push('Consult a psychologist (URGENT)');
         } else if (distressAnalysis.distressLevel >= 3) {
-            immediate.push('Pauses régulières');
-            immediate.push('Techniques de relaxation');
-            longTerm.push('Consulter un psychologue');
+            immediate.push('Regular breaks');
+            immediate.push('Relaxation techniques');
+            longTerm.push('Consult a psychologist');
         } else {
-            immediate.push('Maintenir les bonnes habitudes');
-            longTerm.push('Continuer le suivi');
+            immediate.push('Maintain good habits');
+            longTerm.push('Continue monitoring');
         }
         if (message.toLowerCase().includes('burnout')) {
-            immediate.push('Limiter les heures de travail');
-            longTerm.push('Discuter avec son employeur');
+            immediate.push('Limit working hours');
+            longTerm.push('Discuss with employer');
         }
         return { immediate, longTerm };
     }
 
     generateProfessionalNotes(message, distressAnalysis, topics) {
-        let notes = `Patient présente un niveau de détresse de ${distressAnalysis.distressLevel}/5. `;
-        if (topics.includes('burnout')) notes += 'Signes de burnout confirmés. ';
-        if (distressAnalysis.emergency) notes += 'URGENCE - Intervention immédiate requise. ';
-        if (distressAnalysis.distressLevel >= 4) notes += 'Niveau de détresse élevé nécessitant un suivi rapproché. ';
-        notes += `Thèmes abordés: ${topics.join(', ')}. `;
-        notes += `Langue utilisée: ${distressAnalysis.language || 'non détectée'}.`;
+        let notes = `Patient shows distress level of ${distressAnalysis.distressLevel}/5. `;
+        if (topics.includes('burnout')) notes += 'Burnout signs confirmed. ';
+        if (distressAnalysis.emergency) notes += 'EMERGENCY - Immediate intervention required. ';
+        if (distressAnalysis.distressLevel >= 4) notes += 'High distress level requiring close monitoring. ';
+        notes += `Topics discussed: ${topics.join(', ')}. `;
+        notes += `Language used: ${distressAnalysis.language || 'not detected'}.`;
         return notes;
     }
 }
