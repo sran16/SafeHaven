@@ -10,6 +10,6 @@ router.use(authMiddleware);
 // Routes pour les humeurs
 router.post('/', validateBody(schemas.mood.create), moodController.createMood);
 router.get('/', moodController.getUserMoods);
-router.get('/stats', moodController.getMoodStats);
+
 
 export default router; 

@@ -199,12 +199,12 @@ class UserService {
         });
 
         if (!user) {
-            throw new Error('Utilisateur non trouvé');
+            throw new Error('User not found');
         }
 
         const validPassword = await bcrypt.compare(currentPassword, user.password);
         if (!validPassword) {
-            throw new Error('Mot de passe actuel incorrect');
+            throw new Error('Current password is incorrect');
         }
 
         const hashedPassword = await bcrypt.hash(newPassword, 10);

@@ -22,7 +22,7 @@ class ExperienceController {
                 // RETOURNER L'ERREUR AVEC LE MESSAGE DE WARNING
                     return res.status(400).json({
                         success: false,
-                        message: 'Contenu non autorisé',
+                        message: 'Unauthorized content',
                         data: {
                             blocked: true,
                             warning: moderationResult.warningMessage
@@ -82,7 +82,7 @@ class ExperienceController {
         try {
             const experienceId = parseInt(req.params.id);
             if (isNaN(experienceId)) {
-                return errorResponse(res, 400, 'ID d\'expérience invalide');
+                return errorResponse(res, 400, 'Invalid experience ID');
             }
             const experience = await experienceService.getExperienceById(experienceId);
             if (!experience) {

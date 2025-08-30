@@ -141,54 +141,7 @@ class ExperienceService {
         return { isLiked: false, likes: likesCount.get(experienceId) };
     }
 
-    async getExperienceById(id) {
-        try {
-            if (!id || isNaN(id)) {
-                throw new Error('ID d\'expérience invalide');
-            }
 
-            const experience = await prisma.experiences.findUnique({
-                where: {
-                    id_experience: id
-                },
-                include: {
-                    user: true
-                }
-            });
-
-            if (!experience) {
-                return null;
-            }
-
-            // Récupérer les commentaires séparément
-            const answers = await prisma.answers.findMany({
-                where: {
-                    experienceId: experience.id_experience
-                },
-                include: {
-                    user: true
-                },
-                orderBy: {
-                    publicationDate: 'desc'
-                }
-            });
-
-            return {
-                ...experience,
-                likes: likesCount.get(experience.id_experience) || 0,
-                isLiked: likesStore.get(experience.id_experience)?.has(experience.user.id_user) || false,
-                comments: answers.map(answer => ({
-                    id: answer.id_response,
-                    content: answer.content,
-                    author: answer.user.name || 'Utilisateur inconnu',
-                    createdAt: answer.publicationDate
-                }))
-            };
-        } catch (error) {
-            console.error('Error in getExperienceById:', error);
-            throw error;
-        }
-    }
 
     async getExperiencesByUserId(userId) {
         try {
@@ -231,6 +184,55 @@ class ExperienceService {
             }));
         } catch (error) {
             console.error('Error in getExperiencesByUserId:', error);
+            throw error;
+        }
+    }
+
+    async getExperienceById(id) {
+        try {
+            if (!id || isNaN(id)) {
+                throw new Error('Invalid experience ID');
+            }
+
+            const experience = await prisma.experiences.findUnique({
+                where: {
+                    id_experience: id
+                },
+                include: {
+                    user: true
+                }
+            });
+
+            if (!experience) {
+                return null;
+            }
+
+            // Récupérer les commentaires séparément
+            const answers = await prisma.answers.findMany({
+                where: {
+                    experienceId: experience.id_experience
+                },
+                include: {
+                    user: true
+                },
+                orderBy: {
+                    publicationDate: 'desc'
+                }
+            });
+
+            return {
+                ...experience,
+                likes: likesCount.get(experience.id_experience) || 0,
+                isLiked: likesStore.get(experience.id_experience)?.has(experience.user.id_user) || false,
+                comments: answers.map(answer => ({
+                    id: answer.id_response,
+                    content: answer.content,
+                    author: answer.user.name || 'Unknown user',
+                    createdAt: answer.publicationDate
+                }))
+            };
+        } catch (error) {
+            console.error('Error in getExperienceById:', error);
             throw error;
         }
     }

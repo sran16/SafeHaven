@@ -1,7 +1,6 @@
 import jwt from 'jsonwebtoken';
 import prisma from '../config/database.js';
 
-// dotenv.config() est appelé dans server.js (point d'entrée principal)
 
 const authMiddleware = async (req, res, next) => {
   try {

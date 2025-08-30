@@ -1,202 +1,148 @@
 import prisma from '../config/database.js';
 
-const FLAGGED_WORDS = [
-    'suicide', 'se tuer', 'mourir', 'overdose', 'automutilation',
-    'kill myself', 'kill me', 'end my life', 'want to die', 'self harm', 'cut myself', 'jump off', 'hang myself',
-    'connard', 'salope', 'enculé', 'pute', 'fdp',
-    'fuck you', 'bitch', 'asshole', 'bastard', 'damn you', 'go to hell', 'hate you', 'idiot', 'stupid',
-    'drogue', 'dealer', 'cannabis', 'cocaine', 'héroïne',
-    'drugs', 'heroin', 'weed', 'marijuana', 'meth',
-    'téléphone', 'adresse', 'email', '@', 'whatsapp',
-    'phone number', 'address', 'contact me', 'call me',
-    'vendre', 'acheter', 'promo', 'gratuit', 'cliquez ici',
-    'buy now', 'click here', 'free offer', 'promotion', 'discount', 'sale'
+// TODO: Améliorer cette liste plus tard
+const BAD_WORDS = [
+    'suicide', 'kill', 'die', 'death',
+    'fuck', 'bitch', 'asshole', 'stupid',
+    'drugs', 'heroin', 'weed',
+    'phone', 'email', '@', 'address'
 ];
 
-const SEVERITY_LEVELS = {
-    LOW: 'low',
-    MEDIUM: 'medium', 
-    HIGH: 'high',
-    CRITICAL: 'critical'
-};
-
 class ModerationService {
+    // Analyse de contenu avec catégories
     async analyzeContent(content) {
-        const analysis = {
-            flagged: false,
-            severity: SEVERITY_LEVELS.LOW,
-            reasons: [],
-            flaggedWords: [],
-            riskScore: 0
-        };
-
-        const normalizedContent = content.toLowerCase();
-        let riskScore = 0;
-
-        for (const word of FLAGGED_WORDS) {
-            if (normalizedContent.includes(word.toLowerCase())) {
-                analysis.flagged = true;
-                analysis.flaggedWords.push(word);
-                
-                if (['suicide', 'se tuer', 'mourir', 'kill myself', 'kill me', 'end my life', 'want to die', 'self harm', 'cut myself', 'jump off', 'hang myself'].includes(word)) {
-                    riskScore += 10;
-                    analysis.reasons.push('Contenu à risque suicidaire');
-                } else if (['connard', 'salope', 'enculé', 'fuck you', 'bitch', 'asshole', 'bastard', 'damn you', 'go to hell', 'hate you'].includes(word)) {
-                    riskScore += 5;
-                    analysis.reasons.push('Langage inapproprié');
-                } else if (['téléphone', 'email', '@', 'phone number', 'address', 'contact me', 'call me'].includes(word)) {
-                    riskScore += 3;
-                    analysis.reasons.push('Informations personnelles');
-                } else {
-                    riskScore += 2;
-                    analysis.reasons.push('Contenu potentiellement problématique');
-                }
+        const lowerContent = content.toLowerCase();
+        const foundWords = [];
+        const reasons = [];
+        
+        // Categories of forbidden words
+        const suicideWords = ['suicide', 'kill', 'die', 'death'];
+        const badWords = ['fuck', 'bitch', 'asshole', 'stupid'];
+        const drugWords = ['drugs', 'heroin', 'weed'];
+        const personalWords = ['phone', 'email', '@', 'address'];
+        
+        // Check each category
+        for (const word of suicideWords) {
+            if (lowerContent.includes(word)) {
+                foundWords.push(word);
+                reasons.push('Suicidal content detected');
             }
         }
-
-        if (normalizedContent.match(/\b\d{10}\b/)) {
-            analysis.flagged = true;
-            riskScore += 5;
-            analysis.reasons.push('Numéro de téléphone détecté');
+        
+        for (const word of badWords) {
+            if (lowerContent.includes(word)) {
+                foundWords.push(word);
+                reasons.push('Inappropriate language');
+            }
         }
-
-        if (normalizedContent.match(/\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b/)) { // Email
-            analysis.flagged = true;
-            riskScore += 5;
-            analysis.reasons.push('Adresse email détectée');
+        
+        for (const word of drugWords) {
+            if (lowerContent.includes(word)) {
+                foundWords.push(word);
+                reasons.push('Drug-related content');
+            }
         }
-
-        // Détermination du niveau de sévérité
-        analysis.riskScore = riskScore;
-        if (riskScore >= 10) {
-            analysis.severity = SEVERITY_LEVELS.CRITICAL;
-        } else if (riskScore >= 7) {
-            analysis.severity = SEVERITY_LEVELS.HIGH;
-        } else if (riskScore >= 4) {
-            analysis.severity = SEVERITY_LEVELS.MEDIUM;
+        
+        for (const word of personalWords) {
+            if (lowerContent.includes(word)) {
+                foundWords.push(word);
+                reasons.push('Personal information');
+            }
         }
-
-        return analysis;
+        
+        const hasBadWords = foundWords.length > 0;
+        
+        return {
+            flagged: hasBadWords,
+            badWords: foundWords,
+            reasons: [...new Set(reasons)], // Remove duplicates
+            message: hasBadWords ? 'Inappropriate content detected' : 'OK'
+        };
     }
 
+    // Modération avec explications
     async moderateExperience(experienceData) {
         const analysis = await this.analyzeContent(experienceData.content);
         
         if (analysis.flagged) {
-            await this.logModerationAction({
-                action: `BLOCKED: ${analysis.reasons.join(', ')}`,
-                experienceId: null,
-                moderatorId: 1,
-                severity: analysis.severity,
-                details: JSON.stringify(analysis)
-            });
-
-            await this.logUserAction(
-                experienceData.userId,
-                'POST_BLOCKED',
-                `Contenu bloqué: ${analysis.reasons.join(', ')}`
-            );
-
+            console.log('Content blocked:', analysis.badWords);
+            
+            // Generate explanation message
+            const warningMessage = this.generateWarningMessage(analysis.reasons);
+            
             return {
                 blocked: true,
                 reasons: analysis.reasons,
-                severity: analysis.severity,
-                riskScore: analysis.riskScore,
-                warningMessage: this.generateWarningMessage(analysis)
+                badWords: analysis.badWords,
+                warningMessage: warningMessage
             };
         }
 
         return {
             ...experienceData,
-            blocked: false,
-            approved: true
+            blocked: false
         };
     }
 
-    generateWarningMessage(analysis) {
-        const { reasons, severity } = analysis;
-        
-        if (reasons.includes('Contenu à risque suicidaire')) {
+    // Generate simple warning message
+    generateWarningMessage(reasons) {
+        if (reasons.includes('Suicidal content detected')) {
             return {
                 title: "⚠️ Sensitive Content Detected",
-                message: "Your message contains content that could worry other users. SafeHaven is a space of support and kindness.",
-                suggestion: "Please rephrase your message in a more positive way, or contact our support resources if you're going through a difficult time.",
+                message: "Your message contains content that could worry other users.",
+                suggestion: "SafeHaven is a supportive space. If you're going through a difficult time, please contact our help resources.",
                 helpResources: [
                     "National Suicide Prevention Lifeline: 988",
-                    "Crisis Text Line: Text HOME to 741741",
-                    "International Association for Suicide Prevention: https://www.iasp.info/resources/Crisis_Centres/"
+                    "Crisis Text Line: Text HOME to 741741"
                 ]
             };
         }
         
-        if (reasons.includes('Langage inapproprié')) {
+        if (reasons.includes('Inappropriate language')) {
             return {
                 title: "🚫 Inappropriate Language",
                 message: "Your message contains words that don't respect our kindness policy.",
-                suggestion: "Please rephrase your message with respectful language to create a healthy environment for everyone.",
+                suggestion: "Please rephrase your message with respectful language.",
                 helpResources: []
             };
         }
         
-        if (reasons.includes('Numéro de téléphone détecté') || reasons.includes('Adresse email détectée')) {
+        if (reasons.includes('Personal information')) {
             return {
                 title: "🔒 Personal Information",
                 message: "For your safety, we don't allow sharing personal information publicly.",
-                suggestion: "Please remove your personal information. You can exchange privately if needed.",
+                suggestion: "Please remove your personal information from the message.",
+                helpResources: []
+            };
+        }
+        
+        if (reasons.includes('Drug-related content')) {
+            return {
+                title: "🚫 Unauthorized Content",
+                message: "Drug-related content is not allowed on SafeHaven.",
+                suggestion: "Please modify your message to respect our community guidelines.",
                 helpResources: []
             };
         }
         
         // Generic message
         return {
-            title: "⚠️ Content Not Allowed",
+            title: "⚠️ Unauthorized Content",
             message: "Your message doesn't respect our community guidelines.",
             suggestion: "Please modify your message to be kind and respectful.",
             helpResources: []
         };
     }
 
-
-
-
-
-    /**
-     * Log une action de modération
-     */
-    async logModerationAction({ action, experienceId = null, moderatorId, severity = 'medium', details = '' }) {
-        try {
-            // TEMPORAIRE : Créer le modérateur système s'il n'existe pas
-            if (moderatorId === 1) {
-                const systemModerator = await prisma.moderateurs.upsert({
-                    where: { id_moderateur: 1 },
-                    update: {},
-                    create: { id_moderateur: 1 }
-                });
-            }
-
-            return await prisma.moderationLogs.create({
-                data: {
-                    action: action,
-                    experienceId: experienceId,
-                    moderatorId: moderatorId
-                }
-            });
-        } catch (error) {
-            return null;
-        }
+    // TODO: Improve logging later
+    async logModerationAction(data) {
+        console.log('Moderation:', data);
+        return true;
     }
 
     async logUserAction(userId, action, details = '') {
-        try {
-            return await prisma.userLogs.create({
-                data: {
-                    userId: userId,
-                    action: `${action}: ${details}`
-                }
-            });
-        } catch (error) {
-            throw error;
-        }
+        console.log('User action:', userId, action, details);
+        return true;
     }
 
 

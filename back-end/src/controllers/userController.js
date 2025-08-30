@@ -55,20 +55,12 @@ class UserController {
         }
     }
 
-    async updateProfile(req, res) {
+        async updateProfile(req, res) {
         try {
             const updatedUser = await userService.updateUserProfile(req.user.id_user, req.body);
             return successResponse(res, 200, 'Profile updated successfully', updatedUser);
         } catch (error) {
             return errorResponse(res, 400, error.message);
-        }
-    }
-
-    async verifyToken(req, res) {
-        try {
-            return successResponse(res, 200, 'Token is valid', { user: req.user });
-        } catch (error) {
-            return errorResponse(res, 401, error.message);
         }
     }
 

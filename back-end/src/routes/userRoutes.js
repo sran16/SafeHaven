@@ -16,8 +16,7 @@ router.use(authMiddleware);
 router.delete('/sessions/current', userController.logout); 
 router.get('/me', userController.getProfile); 
 router.put('/me', validateBody(schemas.user.updateProfile), userController.updateProfile);
-router.get('/session', userController.verifyToken); 
-router.put('/me/password', userController.changePassword); 
+router.put('/me/password', userController.changePassword);
 router.get('/me/experiences', experienceController.getUserExperiences); 
 
 export default router;

@@ -180,35 +180,7 @@ Goal: Brief, natural conversation like texting.`
         }
     }
 
-    async getSentimentAnalysis(req, res) {
-        try {
-            const analysis = await chatbotService.analyzeLastMessage(req.user.id_user);
-            return successResponse(res, 200, 'Sentiment analysis retrieved successfully', {
-                sentiment: analysis.sentiment,
-                distressLevel: analysis.distressLevel
-            });
-        } catch (error) {
-            return errorResponse(res, 400, error.message);
-        }
-    }
 
-    async getRecommendations(req, res) {
-        try {
-            const analysis = await chatbotService.analyzeLastMessage(req.user.id_user);
-            return successResponse(res, 200, 'Recommendations retrieved successfully', analysis.recommendations);
-        } catch (error) {
-            return errorResponse(res, 400, error.message);
-        }
-    }
-
-    async generateReport(req, res) {
-        try {
-            const report = await chatbotService.generateReport(req.user.id_user);
-            return successResponse(res, 200, 'Report generated successfully', report);
-        } catch (error) {
-            return errorResponse(res, 400, error.message);
-        }
-    }
 
 
 

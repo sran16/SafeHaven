@@ -26,7 +26,7 @@ export const useMoodStore = defineStore('mood', {
           return response.data
         }
       } catch (error) {
-        console.error('Erreur lors de la création de l\'humeur:', error)
+        console.error('Error creating mood:', error)
         this.error = error.response?.data?.message || error.message
         throw error
       } finally {
@@ -45,7 +45,7 @@ export const useMoodStore = defineStore('mood', {
           this.updateTodayMood()
         }
       } catch (error) {
-        console.error('Erreur lors de la récupération des humeurs:', error)
+        console.error('Error fetching moods:', error)
         this.error = error.response?.data?.message || error.message
         throw error
       } finally {
