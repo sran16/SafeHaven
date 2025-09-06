@@ -10,7 +10,6 @@
 </template>
 
 <script setup>
-// Props utilisées directement dans le template
 defineProps({
   mood: {
     type: Object,

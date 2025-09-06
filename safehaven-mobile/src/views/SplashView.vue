@@ -14,6 +14,7 @@ export default {
   name: 'SplashView',
   mounted() {
     setTimeout(() => {
+      // Redirection vers login après 5 secondes
       this.$router.push('/login')
     }, 5000)
   }

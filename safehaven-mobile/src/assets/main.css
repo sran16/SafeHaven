@@ -72,9 +72,9 @@ textarea:focus {
 }
 
 /* Styles pour les pages avec navigation */
-#app.with-nav {
+/* #app.with-nav {
   padding-bottom: 80px;
-}
+} */
 
 main.with-nav {
   min-height: calc(100vh - 80px);

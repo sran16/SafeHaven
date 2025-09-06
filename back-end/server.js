@@ -22,7 +22,7 @@ const app = express();
 app.set('trust proxy', 1);
 
 app.use(cors({
-  origin: ['http://localhost:5173', 'https://safe-haven-kappa.vercel.app', 'capacitor://localhost', 'http://localhost', 'file://', 'http://10.0.2.2:3000'],
+  origin: ['http://localhost:5173', 'capacitor://localhost', 'http://localhost', 'file://', 'http://10.0.2.2:3000'],
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization']

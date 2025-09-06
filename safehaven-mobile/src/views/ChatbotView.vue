@@ -34,10 +34,12 @@
 import { ref, nextTick, onMounted, computed } from 'vue'
 import axios from 'axios'
 import { getApiUrl, getAuthHeaders } from '../utils/api'
+import { useAuthStore } from '../stores/auth'
 import Ia from '../components/Chat/Ia.vue'
 import User from '../components/Chat/User.vue'
 import sendIcon from '../assets/Icons/chat/btn send.svg'
 
+const authStore = useAuthStore()
 const messages = ref([])
 const newMessage = ref('')
 const isProcessing = ref(false)
@@ -67,27 +69,12 @@ const sendMessage = async () => {
   isProcessing.value = true
 
   try {
-    const token = localStorage.getItem('token')
-    if (!token) {
+    if (!authStore.isAuthenticated) {
       throw new Error('Vous devez être connecté pour utiliser le chat')
     }
 
-    const userStr = localStorage.getItem('user')
-    
-    if (!userStr) {
+    if (!authStore.user) {
       throw new Error('Session expirée, veuillez vous reconnecter')
-    }
-
-    let user
-    try {
-      user = JSON.parse(userStr)
-    } catch (e) {
-      console.error('Erreur parsing user data:', e)
-      throw new Error('Erreur de session, veuillez vous reconnecter')
-    }
-    
-    if (!user || !user.id) {
-      throw new Error('Session invalide, veuillez vous reconnecter')
     }
 
     const apiUrl = getApiUrl();
@@ -126,12 +113,9 @@ const displayName = computed(() => {
 const getUserName = () => displayName.value
 
 onMounted(async () => {
-  // Charger l'utilisateur stocké (username ou name)
-  try {
-    const userStr = localStorage.getItem('user')
-    if (userStr) userObj.value = JSON.parse(userStr)
-  } catch {
-    console.warn('Impossible de charger les données utilisateur stockées')
+  // Charger l'utilisateur depuis le store
+  if (authStore.user) {
+    userObj.value = authStore.user
   }
 
   // Vérifier s'il y a un timestamp stocké pour une redirection

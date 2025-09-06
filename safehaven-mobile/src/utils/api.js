@@ -21,6 +21,7 @@ export const getAuthHeaders = () => {
   
   // Validation mobile-friendly avec nettoyage auto
   if (token && !isTokenValid(token)) {
+    // Nettoyage silencieux sans redirection
     localStorage.removeItem('token')
     localStorage.removeItem('user')
     console.log('Token expiré - nettoyage automatique mobile')

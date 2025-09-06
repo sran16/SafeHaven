@@ -181,11 +181,6 @@ Goal: Brief, natural conversation like texting.`
     }
 
 
-
-
-
-
-
     // Récupère tous les rapports de session d'un utilisateur
     async getSessionReports(req, res) {
         try {

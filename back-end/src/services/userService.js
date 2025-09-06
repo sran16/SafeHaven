@@ -31,6 +31,8 @@ class UserService {
         // TODO: Réduire les rounds pour améliorer les performances
         // En développement, utiliser moins de rounds pour les tests
         const rounds = process.env.NODE_ENV === 'development' ? 4 : 8;
+
+        
         const hashedPassword = await bcrypt.hash(password, rounds);
         
         try {

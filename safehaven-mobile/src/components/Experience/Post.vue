@@ -71,17 +71,18 @@ import { ref, onMounted } from 'vue'
 import axios from 'axios'
 import { useRouter } from 'vue-router'
 import { getApiUrl, getAuthHeaders } from '../../utils/api'
+import { useAuthStore } from '../../stores/auth'
 
 const router = useRouter()
+const authStore = useAuthStore()
 const posts = ref([])
 const loading = ref(true)
 
 
 const fetchPosts = async () => {
   try {
-    const token = localStorage.getItem('token')
-    if (!token) {
-      router.push('/login')
+    if (!authStore.isAuthenticated) {
+      authStore.logout()
       return
     }
 
@@ -103,7 +104,7 @@ const fetchPosts = async () => {
   } catch (error) {
     // Erreur lors du chargement des posts
     if (error.response?.status === 401) {
-      router.push('/login')
+      authStore.logout()
     }
   } finally {
     loading.value = false
@@ -112,9 +113,8 @@ const fetchPosts = async () => {
 
 const likePost = async (postId) => {
   try {
-    const token = localStorage.getItem('token')
-    if (!token) {
-      router.push('/login')
+    if (!authStore.isAuthenticated) {
+      authStore.logout()
       return
     }
 
@@ -136,7 +136,7 @@ const likePost = async (postId) => {
   } catch (error) {
     // Erreur lors du like
     if (error.response?.status === 401) {
-      router.push('/login')
+      authStore.logout()
     }
   }
 }
@@ -149,9 +149,8 @@ const addComment = async (post) => {
   if (!post.newComment.trim()) return
 
   try {
-    const token = localStorage.getItem('token')
-    if (!token) {
-      router.push('/login')
+    if (!authStore.isAuthenticated) {
+      authStore.logout()
       return
     }
 
@@ -187,9 +186,9 @@ const addComment = async (post) => {
   } catch (error) {
     // Erreur lors de l'ajout du commentaire
     if (error.response?.status === 401) {
-      router.push('/login')
+      authStore.logout()
     }
-    // Gestion d'erreur silencieuse pour l'UX
+    
   }
 }
 

@@ -15,26 +15,47 @@ const props = defineProps({
 const chartCanvas = ref(null)
 let chart = null
 
-const moodTypeToValue = (moodType) => ({ angry:1, sad:2, neutral:3, calm:4, happy:5 }[moodType] ?? 3)
-const moodTypeToEmoji = (moodType) => ({ angry:'😡', sad:'😢', neutral:'😐', calm:'🙂', happy:'😄' }[moodType] ?? '😐')
-const moodTypeToLabel = (moodType) => ({ angry:'En colère', sad:'Triste', neutral:'Neutre', calm:'Calme', happy:'Heureux' }[moodType] ?? 'Neutre')
+// Configuration des humeurs
+const MOOD_CONFIG = {
+  angry: { value: 1, emoji: '😡', label: 'En colère' },
+  sad: { value: 2, emoji: '😢', label: 'Triste' },
+  neutral: { value: 3, emoji: '😐', label: 'Neutre' },
+  calm: { value: 4, emoji: '🙂', label: 'Calme' },
+  happy: { value: 5, emoji: '😄', label: 'Heureux' }
+}
+
+const getMoodValue = (moodType) => MOOD_CONFIG[moodType]?.value || 3
+const getMoodEmoji = (moodType) => MOOD_CONFIG[moodType]?.emoji || '😐'
+const getMoodLabel = (moodType) => MOOD_CONFIG[moodType]?.label || 'Neutre'
+
+const formatDate = (dateString) => {
+  const date = new Date(dateString)
+  return date.toLocaleDateString('fr-FR', { 
+    day: 'numeric', 
+    month: 'short' 
+  })
+}
 
 const createChart = () => {
-  if (chart) chart.destroy()
+  if (chart) {
+    chart.destroy()
+  }
+
   const canvas = chartCanvas.value
   const ctx = canvas.getContext('2d')
 
-  // Dégradé olive → transparent
+  // Création du dégradé
   const gradient = ctx.createLinearGradient(0, 0, 0, canvas.height)
-  gradient.addColorStop(0, 'rgba(124,126,115,0.25)') // olive clair
+  gradient.addColorStop(0, 'rgba(124,126,115,0.25)')
   gradient.addColorStop(1, 'rgba(124,126,115,0.02)')
 
-  const labels = props.moodData.map(entry => {
-    const d = new Date(entry.dateRegistration || entry.createdAt)
-    return d.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })
-  })
+  const labels = props.moodData.map(entry => 
+    formatDate(entry.dateRegistration || entry.createdAt)
+  )
 
-  const data = props.moodData.map(entry => moodTypeToValue(entry.moodType))
+  const data = props.moodData.map(entry => 
+    getMoodValue(entry.moodType)
+  )
 
   chart = new Chart(ctx, {
     type: 'line',
@@ -66,9 +87,8 @@ const createChart = () => {
           bodyColor: '#FFFFFF',
           callbacks: {
             label: (ctx) => {
-              const i = ctx.dataIndex
-              const moodType = props.moodData[i].moodType
-              return `${moodTypeToEmoji(moodType)} ${moodTypeToLabel(moodType)}`
+              const moodType = props.moodData[ctx.dataIndex].moodType
+              return `${getMoodEmoji(moodType)} ${getMoodLabel(moodType)}`
             }
           }
         }
@@ -86,7 +106,7 @@ const createChart = () => {
             stepSize: 1,
             color: '#7C7E73',
             font: { size: 12 },
-            callback: (v) => ({1:'😡',2:'😢',3:'😐',4:'🙂',5:'😄'}[v])
+            callback: (value) => MOOD_CONFIG[Object.keys(MOOD_CONFIG)[value - 1]]?.emoji || '😐'
           }
         }
       }
@@ -94,9 +114,17 @@ const createChart = () => {
   })
 }
 
-watch(() => props.moodData, (val) => { if (val?.length) createChart() }, { deep: true })
+watch(() => props.moodData, () => {
+  if (props.moodData?.length) {
+    createChart()
+  }
+}, { deep: true })
 
-onMounted(() => { if (props.moodData?.length) createChart() })
+onMounted(() => {
+  if (props.moodData?.length) {
+    createChart()
+  }
+})
 </script>
 
 <style scoped>

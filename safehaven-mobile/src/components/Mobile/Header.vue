@@ -70,8 +70,10 @@ import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { getApiUrl, getAuthHeaders } from '../../utils/api.js'
 import axios from 'axios'
+import { useAuthStore } from '../../stores/auth'
 
 const router = useRouter()
+const authStore = useAuthStore()
 const showAddModal = ref(false)
 const showWarning = ref(false)
 const experienceContent = ref('')
@@ -124,8 +126,7 @@ const shareExperience = async () => {
         console.error(' Error while publishing:', error)
         
         if (error.response?.status === 401) {
-            alert('Session expired, please log in again')
-            router.push('/login')
+            authStore.logout()
         } else if (error.response?.status === 400 && error.response?.data?.data?.blocked) {
             const warning = error.response.data.data.warning
             showWarningModal(warning)
