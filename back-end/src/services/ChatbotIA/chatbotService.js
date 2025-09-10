@@ -138,8 +138,8 @@ class ChatbotService {
         }
     }
 
-    // Analyse complète basée sur le dernier message utilisateur
-    async analyzeLastMessage(userId) {
+    // Analyse de toute la session
+    async analyzeCompleteSession(userId) {
         const latest = await this.getLatestSession(userId);
         if (!latest || !latest.messages || latest.messages.length === 0) {
             return {
@@ -149,8 +149,9 @@ class ChatbotService {
             };
         }
         
-        const lastUserMsg = [...latest.messages].reverse().find(m => m.isUserMessage);
-        if (!lastUserMsg) {
+        // Récupérer TOUS les messages utilisateur 
+        const userMessages = latest.messages.filter(m => m.isUserMessage);
+        if (userMessages.length === 0) {
             return {
                 sentiment: 'neutral',
                 distressLevel: 3,
@@ -158,20 +159,50 @@ class ChatbotService {
             };
         }
 
-        // UNE SEULE ANALYSE pour tout
-        const message = lastUserMsg.content;
-        const distress = nlpService.detectDistressAndEmergency(message);
-        const sentiment = nlpService.analyzeSentiment(message);
-        const topics = nlpService.extractTopics(message);
-        const recommendations = nlpService.generateRecommendations(message, distress);
+        // Trouver le niveau de détresse MAXIMUM parmi tous les messages
+        let maxDistress = 1;
+        let hasEmergency = false;
+        let allTopics = [];
+
+        // Analyser chaque message utilisateur
+        userMessages.forEach(message => {
+            const distress = nlpService.detectDistressAndEmergency(message.content);
+            const topics = nlpService.extractTopics(message.content);
+            
+            // Garder le niveau le plus élevé trouvé
+            if (distress.distressLevel > maxDistress) {
+                maxDistress = distress.distressLevel;
+            }
+            
+            // Si on trouve une urgence, la marquer
+            if (distress.emergency) {
+                hasEmergency = true;
+            }
+            
+            // Collecter tous les sujets
+            allTopics.push(...topics);
+        });
+
+        // Analyser le sentiment du dernier message (logique simple)
+        const lastMessage = userMessages[userMessages.length - 1].content;
+        const sentiment = nlpService.analyzeSentiment(lastMessage);
+        const recommendations = nlpService.generateRecommendations(lastMessage, { 
+            distressLevel: maxDistress, 
+            emergency: hasEmergency 
+        });
 
         return {
             sentiment,
-            distressLevel: distress.distressLevel,
-            emergency: distress.emergency,
-            topics,
+            distressLevel: maxDistress,           // Le niveau MAXIMUM trouvé
+            emergency: hasEmergency,              // Y a-t-il eu urgence ?
+            topics: [...new Set(allTopics)],      // Sujets uniques
             recommendations
         };
+    }
+
+    // Maintenir la compatibilité - rediriger vers la nouvelle fonction
+    async analyzeLastMessage(userId) {
+        return await this.analyzeCompleteSession(userId);
     }
 
 
@@ -183,8 +214,7 @@ class ChatbotService {
             throw new Error('Aucune session trouvée');
         }
 
-        // ✅ PAS DE DUPLICATION : On utilise directement l'analyse existante
-        const analysis = await this.analyzeLastMessage(userId);
+        const analysis = await this.analyzeCompleteSession(userId);
         const lastUserMsg = [...(latest.messages || [])].reverse().find(m => m.isUserMessage)?.content || '';
         
         const reportData = {

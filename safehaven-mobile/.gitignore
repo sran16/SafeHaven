@@ -28,3 +28,6 @@ coverage
 *.sw?
 
 *.tsbuildinfo
+
+/ios/App/App/public/
+/capacitor.config.json

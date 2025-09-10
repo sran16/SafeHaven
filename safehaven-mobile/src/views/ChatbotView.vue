@@ -97,8 +97,9 @@ const sendMessage = async () => {
     messages.value.push({
       text: error.message || 'Désolé, une erreur est survenue. Veuillez réessayer.',
       sender: 'bot',
-      timestamp: new Date()
+      timestamp: Date.now()  
     })
+    await scrollToBottom()   
   } finally {
     isProcessing.value = false
   }
@@ -176,7 +177,7 @@ onMounted(async () => {
 
 <style scoped>
 .chatbot-bg {
-  min-height: 100vh;
+  height: 100vh;     
   width: 100vw;
   background: url('../assets/Bgs/ChatbotBg.svg') no-repeat center center;
   background-size: cover;
@@ -185,6 +186,7 @@ onMounted(async () => {
   align-items: flex-start;
   justify-content: flex-start;
   padding-top: 40px;
+  overflow: hidden;   
 }
 
 /* Header */
