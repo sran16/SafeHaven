@@ -12,11 +12,10 @@ router.post('/', validateBody(schemas.auth.register), userController.register);
 router.post('/sessions', validateBody(schemas.auth.login), userController.login);
 
 // Routes protégées 
-router.use(authMiddleware);
-router.delete('/sessions/current', userController.logout); 
-router.get('/me', userController.getProfile); 
-router.put('/me', validateBody(schemas.user.updateProfile), userController.updateProfile);
-router.put('/me/password', userController.changePassword);
-router.get('/me/experiences', experienceController.getUserExperiences); 
+router.delete('/sessions/current', authMiddleware, userController.logout); 
+router.get('/me', authMiddleware, userController.getProfile); 
+router.put('/me', authMiddleware, validateBody(schemas.user.updateProfile), userController.updateProfile);
+router.put('/me/password', authMiddleware, userController.changePassword);
+router.get('/me/experiences', authMiddleware, experienceController.getUserExperiences); 
 
 export default router;
