@@ -21,46 +21,49 @@
           {{ formatDate(group.date) }}
         </div>
         
-        <div 
-          v-for="session in group.sessions" 
-          :key="session.id" 
-          :class="['session-item', { active: selectedSession?.id === session.id }]" 
-          @click="select(session)"
-        >
-          <div class="session-preview">
-            <div class="session-message">
-              {{ session.preview }}
+        <div v-for="session in group.sessions" :key="session.id">
+          <div 
+            :class="['session-item', { active: selectedSession?.id === session.id }]" 
+            @click="select(session)"
+          >
+            <div class="session-preview">
+              <div class="session-message">
+                {{ session.preview }}
+              </div>
+            </div>
+          </div>
+          
+          <!-- Popup qui s'affiche directement sous cette session -->
+          <div v-if="selectedSession?.id === session.id" class="session-details-inline">
+            <div class="session-header">
+              <h4>Conversation from {{ formatDate(selectedSession.date) }}</h4>
+              <button class="close-session-btn" @click="selectedSession = null">
+                ×
+              </button>
+            </div>
+            
+            <div class="messages-container">
+              <div 
+                v-for="message in selectedSession.messages" 
+                :key="message.id" 
+                :class="[
+                  'message', 
+                  message.isUserMessage ? 'user-message' : 'bot-message'
+                ]"
+              >
+                <div class="message-content">
+                  {{ message.content }}
+                </div>
+                <div class="message-time">
+                  {{ formatTime(message.timestamp) }}
+                </div>
+              </div>
             </div>
           </div>
         </div>
       </div>
 
-      <div v-if="selectedSession" class="session-details">
-        <div class="session-header">
-          <h4>Conversation from {{ formatDate(selectedSession.date) }}</h4>
-          <button class="close-session-btn" @click="selectedSession = null">
-            ×
-          </button>
-        </div>
-        
-        <div class="messages-container">
-          <div 
-            v-for="message in selectedSession.messages" 
-            :key="message.id" 
-            :class="[
-              'message', 
-              message.isUserMessage ? 'user-message' : 'bot-message'
-            ]"
-          >
-            <div class="message-content">
-              {{ message.content }}
-            </div>
-            <div class="message-time">
-              {{ formatTime(message.timestamp) }}
-            </div>
-          </div>
-        </div>
-      </div>
+      <!-- Ancienne popup supprimée - maintenant inline sous chaque session -->
     </div>
   </div>
 </template>
@@ -78,7 +81,12 @@ defineEmits(['retry', 'start'])
 const selectedSession = ref(null)
 
 const select = (session) => {
-  selectedSession.value = session
+  // Toggle : si c'est déjà sélectionné, on ferme, sinon on ouvre
+  if (selectedSession.value?.id === session.id) {
+    selectedSession.value = null
+  } else {
+    selectedSession.value = session
+  }
 }
 
 const formatDate = (date) => {
@@ -134,11 +142,12 @@ const formatTime = (date) => {
   font-size: 14px;
 }
 
-.session-details {
+.session-details-inline {
   background: #fff;
   border: 1px solid #ddd;
   border-radius: 12px;
-  margin-top: 16px;
+  margin: 8px 0 16px 0;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
 }
 
 .session-header {
@@ -161,7 +170,7 @@ const formatTime = (date) => {
 
 .messages-container {
   padding: 16px;
-  max-height: 300px;
+  max-height: 420px;
   overflow-y: auto;
   display: flex;
   flex-direction: column;
