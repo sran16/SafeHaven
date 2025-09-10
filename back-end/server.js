@@ -9,6 +9,7 @@ import chatbotRoutes from './src/routes/chatbotRoutes.js';
 import moodRoutes from './src/routes/moodRoutes.js';
 import userRoutes from './src/routes/userRoutes.js';
 import experienceRoutes from './src/routes/experienceRoutes.js';
+import cleanupRoutes from './src/routes/cleanupRoutes.js';
 import userService from './src/services/userService.js';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -64,6 +65,7 @@ app.use('/api/users', authLimiter, userRoutes);
 app.use('/api/chat', postLimiter, chatbotRoutes);
 app.use('/api/moods', moodRoutes);
 app.use('/api/experiences', experienceRoutes);
+app.use('/api/cleanup', cleanupRoutes);
 
 // Error handling middleware
 app.use((err, req, res, next) => {
