@@ -1,4 +1,3 @@
-// Tests du Chatbot IA - SafeHaven
 describe('Tests du Chatbot IA', () => {
 
   describe('Analyse des sentiments', () => {

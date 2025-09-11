@@ -4,8 +4,6 @@ class AnswerService {
     async createAnswer(data) {
         try {
             console.log('Création d\'un nouveau commentaire avec les données:', data);
-            
-            // Créer d'abord la réponse avec les champs directs
             const answer = await prisma.answers.create({
                 data: {
                     content: data.content,
@@ -13,7 +11,6 @@ class AnswerService {
                     experienceId: data.experienceId  
                 }
             });
-
             // Récupérer la réponse avec l'utilisateur
             const answerWithUser = await prisma.answers.findUnique({
                 where: {

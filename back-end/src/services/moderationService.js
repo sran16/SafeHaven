@@ -1,6 +1,5 @@
 import prisma from '../config/database.js';
-
-// TODO: Améliorer cette liste plus tard
+// Amelioreate liste to do 
 const BAD_WORDS = [
     'suicide', 'kill', 'die', 'death',
     'fuck', 'bitch', 'asshole', 'stupid',
@@ -59,7 +58,6 @@ class ModerationService {
             message: hasBadWords ? 'Inappropriate content detected' : 'OK'
         };
     }
-
     // Modération avec explications
     async moderateExperience(experienceData) {
         const analysis = await this.analyzeContent(experienceData.content);

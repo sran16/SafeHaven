@@ -237,7 +237,6 @@ class UserService {
             return 0;
         }
     }
-
     // Fonction pour obtenir les sessions actives d'un utilisateur
     async getUserActiveSessions(userId) {
         return await prisma.activeSessions.findMany({

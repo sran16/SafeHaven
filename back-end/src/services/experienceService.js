@@ -112,7 +112,6 @@ class ExperienceService {
             likes: likesCount.get(experienceId)
         };
     }
-
     // Idempotent like
     async like(experienceId, userId) {
         if (!likesStore.has(experienceId)) {
@@ -126,7 +125,6 @@ class ExperienceService {
         }
         return { isLiked: true, likes: likesCount.get(experienceId) };
     }
-
     // Idempotent unlike
     async unlike(experienceId, userId) {
         if (!likesStore.has(experienceId)) {
@@ -140,9 +138,6 @@ class ExperienceService {
         }
         return { isLiked: false, likes: likesCount.get(experienceId) };
     }
-
-
-
     async getExperiencesByUserId(userId) {
         try {
             const experiences = await prisma.experiences.findMany({
@@ -187,7 +182,6 @@ class ExperienceService {
             throw error;
         }
     }
-
     async getExperienceById(id) {
         try {
             if (!id || isNaN(id)) {

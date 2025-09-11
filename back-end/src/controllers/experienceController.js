@@ -2,15 +2,11 @@ import experienceService from '../services/experienceService.js';
 import answerService from '../services/answerService.js';
 import moderationService from '../services/moderationService.js';
 import { successResponse, errorResponse } from '../utils/responses.js';
-import prisma from '../config/database.js';
 
 class ExperienceController {
     async createExperience(req, res) {
         try {
-            const experienceData = {
-                ...req.body,
-                userId: req.user.id_user
-            };
+            const experienceData = {...req.body , userId: req.user.id_user};
             //  ANALYSE DE MODÉRATION AVEC BLOCAGE
             let experience;
             try {

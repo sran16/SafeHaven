@@ -45,8 +45,6 @@ class NLPService {
         return { emergency: hasEmergency, distressLevel };
     }
 
-
-
     extractTopics(message) {
         const topics = [];
         const lowerMessage = message.toLowerCase();

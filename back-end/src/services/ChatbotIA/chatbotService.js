@@ -204,9 +204,6 @@ class ChatbotService {
     async analyzeLastMessage(userId) {
         return await this.analyzeCompleteSession(userId);
     }
-
-
-
     // Génère et sauvegarde un rapport pour la dernière session
     async generateReport(userId) {
         const latest = await this.getLatestSession(userId);

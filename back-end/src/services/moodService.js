@@ -48,7 +48,6 @@ class MoodService {
         });
     }
 
-
 }
 
 export default new MoodService(); 
