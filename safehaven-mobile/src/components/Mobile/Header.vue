@@ -264,7 +264,7 @@ const shareExperience = async () => {
 
 /* Warning Modal Styles */
 .warning-modal {
-    background: white;
+    background: var(--light-ivory);
     border-radius: 20px;
     width: 90%;
     max-width: 400px;

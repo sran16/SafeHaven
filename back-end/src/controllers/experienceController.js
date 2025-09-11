@@ -11,7 +11,6 @@ class ExperienceController {
                 ...req.body,
                 userId: req.user.id_user
             };
-
             //  ANALYSE DE MODÉRATION AVEC BLOCAGE
             let experience;
             try {
@@ -29,7 +28,6 @@ class ExperienceController {
                         }
                     });
                 }
-
                             // CONTENU APPROUVÉ - Publication normale
                 experience = await experienceService.createExperience(experienceData);
                 
@@ -37,7 +35,6 @@ class ExperienceController {
                 // En cas d'erreur de modération, on publie quand même (mode dégradé)
                 experience = await experienceService.createExperience(experienceData);
             }
-            
             return successResponse(res, 201, 'Experience created successfully', experience);
         } catch (error) {
             console.error('Error creating experience:', error);

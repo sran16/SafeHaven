@@ -1,38 +1,18 @@
 import chatbotService from '../services/ChatbotIA/chatbotService.js';
 import { successResponse, errorResponse } from '../utils/responses.js';
 import openAIService from '../services/ChatbotIA/openaiService.js';
-import nlpService from '../services/ChatbotIA/nlpService.js';
 
 class ChatbotController {
     constructor() {
         this.OPENAI_API_KEY = process.env.OPENAI_API_KEY;
         this.OPENAI_MODEL = process.env.OPENAI_MODEL;
-
-        this.emergencyResources = {
-            suicide: "3114",
-            violence: "3919",
-            general: "15",
-            resources: [
-                "SOS Amitié : 09 72 39 40 50",
-                "Fil Santé Jeunes : 0800 235 236",
-                "Croix-Rouge Écoute : 0800 858 858"
-            ]
-        };
-
-
     }
-
-
-
-
 
     async processMessage(req, res) {
         try {
             const { message } = req.body;
 
             const userId = req.user.id_user;
-            
-
             // Vérifier si une session active existe
             try {
                 const activeSession = await chatbotService.getActiveSession(userId);
@@ -55,25 +35,23 @@ class ChatbotController {
             }
 
             const conversationHistory = await chatbotService.getConversationHistory(userId);
-            
-            // TODO: Simplifier cette partie plus tard
-            // Utiliser un prompt système simple en anglais
+        
             const systemPrompt = {
                 role: 'system',
                 content: `You are Haven, a concise AI assistant for mental well-being. Always respond in English.
 
-Rules:
-- Keep responses to 1-2 sentences max
-- Use a friendly, conversational tone
-- Ask short, direct questions
-- No long explanations
+                    Rules:
+                    - Keep responses to 1-2 sentences max
+                    - Use a friendly, conversational tone
+                    - Ask short, direct questions
+                    - No long explanations
 
-Examples:
-- "How are you feeling today?"
-- "What's worrying you?"
-- "Have you tried deep breathing?"
+                    Examples:
+                    - "How are you feeling today?"
+                    - "What's worrying you?"
+                    - "Have you tried deep breathing?"
 
-Goal: Brief, natural conversation like texting.`
+                    Goal: Brief, natural conversation like texting.`
             };
 
             try {
@@ -94,11 +72,8 @@ Goal: Brief, natural conversation like texting.`
                         }
                     });
                 }
-                
                 // Ajouter le message actuel
                 messages.push({ role: "user", content: message });
-                
-                
                 
                 const aiResponse = await openAIService.chat(messages, { temperature: 0.7, max_tokens: 300 }) || "Je suis là pour toi. Dis-moi ce que tu ressens en ce moment.";
 
@@ -179,8 +154,6 @@ Goal: Brief, natural conversation like texting.`
             return errorResponse(res, 500, error.message);
         }
     }
-
-
     // Récupère tous les rapports de session d'un utilisateur
     async getSessionReports(req, res) {
         try {
@@ -194,7 +167,6 @@ Goal: Brief, natural conversation like texting.`
             return errorResponse(res, 500, error.message);
         }
     }
-
 
 }
 

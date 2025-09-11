@@ -2,7 +2,7 @@ class NLPService {
     //  DICTIONNAIRE 
     constructor() {
         this.wordCategories = {
-            emergency: ['suicide', 'kill', 'die', 'death', 'end', 'disappear', 'urgent', 'panic'],
+            emergency: ['suicide', 'kill myself', 'want to die', 'end my life', 'disappear forever', 'urgent help', 'panic attack'],
             highDistress: ['sad', 'depressed', 'depression', 'anxious', 'stress', 'bad', 'sick', 'desperate', 'lost', 'alone', 'abandoned', 'hopeless'],
             moderateDistress: ['tired', 'exhausted', 'worried', 'nervous', 'tense', 'concerned', 'problem', 'difficult'],
             wellness: ['good', 'better', 'happy', 'satisfied', 'positive', 'calm', 'peaceful', 'relaxed'],
@@ -83,7 +83,6 @@ class NLPService {
 
     analyzeSentiment(message) {
         const lowerMessage = message.toLowerCase();
-        
         // Utilise le dictionnaire 
         const negativeWords = this.wordCategories.negative;
         const positiveWords = this.wordCategories.positive;

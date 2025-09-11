@@ -21,6 +21,7 @@ import Post from '../components/Experience/Post.vue'
 .home-container {
   padding: 24px;
   padding-top: 50px;
+  padding-bottom: 50px;
 }
 .Intro {
     margin: 24px 0 0 0;
